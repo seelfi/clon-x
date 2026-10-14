@@ -1,25 +1,39 @@
-import { useState } from "react";
-import "../styles/Publish.css";
+import { useState } from 'react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import '../styles/Publish.css'
 
 function Publish() {
-  const [content, setContent] = useState("");
+  const [content, setContent] = useState('')
+  const { setPosts } = useOutletContext()
+  const navigate = useNavigate()
 
-  const maxCharacters = 280;
-  const remainingCharacters = maxCharacters - content.length;
+  const maxCharacters = 280
+  const remainingCharacters = maxCharacters - content.length
 
   function handleChange(event) {
-    setContent(event.target.value);
+    setContent(event.target.value)
   }
 
   function handleSubmit(event) {
-    event.preventDefault();
+    event.preventDefault()
 
-    if (!content.trim()) {
-      return;
+    const trimmedContent = content.trim()
+
+    if (!trimmedContent || trimmedContent.length > maxCharacters) {
+      return
     }
 
-    console.log("Tweet publicado:", content);
-    setContent("");
+    const newPost = {
+      id: Date.now(),
+      author: 'pablo_dev',
+      content: trimmedContent,
+      likes: 0,
+      createdAt: new Date().toISOString()
+    }
+
+    setPosts((currentPosts) => [newPost, ...currentPosts])
+    setContent('')
+    navigate('/')
   }
 
   return (
@@ -42,14 +56,17 @@ function Publish() {
           <div className="publish-footer">
             <span>Caracteres restantes: {remainingCharacters}</span>
 
-            <button type="submit" disabled={!content.trim()}>
+            <button
+              type="submit"
+              disabled={!content.trim()}
+            >
               Publicar
             </button>
           </div>
         </form>
       </section>
     </main>
-  );
+  )
 }
 
-export default Publish;
+export default Publish

@@ -1,4 +1,4 @@
-
+import { Link } from 'react-router-dom'
 import '../styles/Profile.css'
 
 function Following() {
@@ -14,38 +14,38 @@ function Following() {
     a.fullName.localeCompare(b.fullName, 'es')
   )
 
-  
-return (
-  <main className="profile-page">
-    <header className="profile-header">
-      <a href="/users/pablo_dev">← Volver al perfil</a>
-      <h1>Siguiendo</h1>
-      <p>@pablo_dev</p>
-    </header>
+  return (
+    <main className="profile-page">
+      <header className="profile-header">
+        <Link to="/users/pablo_dev">← Volver al perfil</Link>
+        <h1>Siguiendo</h1>
+        <p>@pablo_dev</p>
+      </header>
 
-    <section className="user-list">
-      {sortedUsers.map((user) => (
-        <article className="user-list-item" key={user.id}>
-          <div className="user-list-avatar">
-            {user.fullName.charAt(0)}
-          </div>
+      <section className="user-list">
+        {sortedUsers.map((user) => (
+          <article className="user-list-item" key={user.id}>
+            <div className="user-list-avatar">
+              {user.fullName.charAt(0)}
+            </div>
 
-          <div className="user-list-info">
-            <h3>{user.fullName}</h3>
-            <p>@{user.username}</p>
-          </div>
+            <div className="user-list-info">
+              <h3>{user.fullName}</h3>
+              <p>@{user.username}</p>
+            </div>
 
-          <button type="button">Ver perfil</button>
-        </article>
-      ))}
-    </section>
+            <Link to={`/users/${user.username}`} className="sidebar__button">
+              Ver perfil
+            </Link>
+          </article>
+        ))}
+      </section>
 
-    <footer className="profile-header">
-      <p>Página 1 de 1</p>
-    </footer>
-  </main>
-)
-
+      <footer className="profile-header">
+        <p>Página 1 de 1</p>
+      </footer>
+    </main>
+  )
 }
 
 export default Following

@@ -1,71 +1,66 @@
-import "../styles/Feed.css";
-import { useEffect, useState } from "react";
+import { useState } from 'react'
+import { useOutletContext } from 'react-router-dom'
+import '../styles/Feed.css'
 
 function Feed() {
-  const [posts, setPosts] = useState([]);
-  const [content, setContent] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:3000/api/posts")
-      .then((response) => response.json())
-      .then((data) => setPosts(data))
-      .catch((error) => console.error("Error al cargar publicaciones:", error));
-  }, []);
+  const { posts, setPosts } = useOutletContext()
+  const [content, setContent] = useState('')
 
   function handlePublish() {
-    if (!content.trim()) {
-      return;
+    const trimmedContent = content.trim()
+
+    if (!trimmedContent || trimmedContent.length > 280) {
+      return
     }
 
-    fetch("http://localhost:3000/api/posts", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        content: content,
-        author: "pablo_dev",
-      }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("No se pudo crear la publicación");
-        }
+    const newPost = {
+      id: Date.now(),
+      author: 'pablo_dev',
+      content: trimmedContent,
+      likes: 0,
+      createdAt: new Date().toISOString()
+    }
 
-        return response.json();
-      })
-      .then((newPost) => {
-        setPosts((currentPosts) => [...currentPosts, newPost]);
-        setContent("");
-      })
-      .catch((error) => {
-        console.error("Error al publicar:", error);
-      });
+    setPosts((currentPosts) => [newPost, ...currentPosts])
+    setContent('')
   }
 
   return (
     <main className="feed">
       <header className="feed__header">
         <h1>Inicio</h1>
+
         <div className="feed__tabs">
-          <button className="feed__tab feed__tab--active">Para ti</button>
-          <button className="feed__tab">Siguiendo</button>
+          <button className="feed__tab feed__tab--active" type="button">
+            Para ti
+          </button>
+
+          <button className="feed__tab" type="button">
+            Siguiendo
+          </button>
         </div>
       </header>
 
       <section className="composer">
         <div className="composer__avatar">P</div>
+
         <div className="composer__content">
           <textarea
             placeholder="¿Qué está pasando?"
             aria-label="Escribe una publicación"
             value={content}
+            maxLength={280}
             onChange={(event) => setContent(event.target.value)}
           />
 
           <div className="composer__actions">
-            <span>Todos pueden responder</span>
-            <button onClick={handlePublish} disabled={!content.trim()}>
+            <span>{content.length}/280 caracteres</span>
+
+            <button
+              type="button"
+              onClick={handlePublish}
+              disabled={!content.trim()}
+            >
               Publicar
             </button>
           </div>
@@ -95,7 +90,7 @@ function Feed() {
         </article>
       ))}
     </main>
-  );
+  )
 }
 
-export default Feed;
+export default Feed

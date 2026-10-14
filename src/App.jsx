@@ -1,25 +1,36 @@
-import { Routes, Route } from 'react-router-dom'
-
+import { Routes, Route, Link, Outlet } from 'react-router-dom'
+import { useState } from 'react'
 import Sidebar from './components/Sidebar'
 import Feed from './components/Feed'
 import RightPanel from './components/RightPanel'
-import './styles/App.css'
 import Publish from './pages/Publish'
-import './styles/Auth.css'
 import Profile from './pages/Profile'
 import Following from './pages/Following'
 import Followers from './pages/Followers'
+import mockPosts from './data/mockPosts'
 
-function Home() {
+import './styles/App.css'
+import './styles/Auth.css'
+
+function MainLayout() {
+  const [posts, setPosts] = useState(mockPosts)
+
   return (
     <div className="layout">
       <Sidebar />
-      <Feed />
+
+      <main className="main-content">
+        <Outlet context={{ posts, setPosts }} />
+      </main>
+
       <RightPanel />
     </div>
   )
 }
 
+function Home() {
+  return <Feed />
+}
 
 function Login() {
   return (
@@ -51,14 +62,12 @@ function Login() {
         </form>
 
         <p>
-          ¿No tienes una cuenta? <a href="/register">Regístrate</a>
+          ¿No tienes una cuenta? <Link to="/register">Regístrate</Link>
         </p>
       </section>
     </main>
   )
 }
-
-
 
 function Register() {
   return (
@@ -108,24 +117,31 @@ function Register() {
         </form>
 
         <p>
-          ¿Ya tienes una cuenta? <a href="/login">Inicia sesión</a>
+          ¿Ya tienes una cuenta? <Link to="/login">Inicia sesión</Link>
         </p>
       </section>
     </main>
   )
 }
 
-
 function App() {
   return (
     <Routes>
-      <Route path="/" element={<Home />} />
+      <Route element={<MainLayout />}>
+        <Route path="/" element={<Home />} />
+        <Route path="/publish" element={<Publish />} />
+        <Route path="/users/:username" element={<Profile />} />
+        <Route path="/users/:username/following" element={<Following />} />
+        <Route path="/users/:username/followers" element={<Followers />} />
+      </Route>
+
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/publish" element={<Publish />} />
-      <Route path="/users/:username" element={<Profile />} />
-      <Route path="/users/:username/following" element={<Following />} />
-      <Route path="/users/:username/followers" element={<Followers />}/>
+
+      <Route
+        path="*"
+        element={<main><h1>Página no encontrada</h1></main>}
+      />
     </Routes>
   )
 }

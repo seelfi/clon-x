@@ -1,5 +1,4 @@
-
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import '../styles/Sidebar.css'
 
 function Sidebar() {
@@ -10,26 +9,58 @@ function Sidebar() {
       </Link>
 
       <nav className="sidebar__nav">
-        <Link to="/" className="sidebar__link sidebar__link--active">
+        <NavLink
+          to="/"
+          end
+          className={({ isActive }) =>
+            `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+          }
+        >
           <span>⌂</span> Inicio
-        </Link>
+        </NavLink>
 
-        <Link to="/users/pablo_dev" className="sidebar__link">
+        <NavLink
+          to="/users/pablo_dev"
+          end
+          className={({ isActive }) =>
+            `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+          }
+        >
           <span>♙</span> Perfil
-        </Link>
+        </NavLink>
 
-        <Link to="/users/pablo_dev/following" className="sidebar__link">
+        <NavLink
+          to="/users/pablo_dev/following"
+          className={({ isActive }) =>
+            `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+          }
+        >
           <span>♧</span> Siguiendo
-        </Link>
+        </NavLink>
 
-        <Link to="/users/pablo_dev/followers" className="sidebar__link">
+        <NavLink
+          to="/users/pablo_dev/followers"
+          className={({ isActive }) =>
+            `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
+          }
+        >
           <span>♧</span> Seguidores
-        </Link>
+        </NavLink>
       </nav>
 
       <Link to="/publish" className="sidebar__button">
         Publicar
       </Link>
+
+      <div className="sidebar__auth">
+        <Link to="/login" className="sidebar__auth-link">
+          Iniciar sesión
+        </Link>
+
+        <Link to="/register" className="sidebar__auth-link">
+          Registro
+        </Link>
+      </div>
     </aside>
   )
 }
