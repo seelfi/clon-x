@@ -146,3 +146,13 @@
 .user-list-item button:hover {
   background-color: #d7dbdc;
 }
+
+
+.profile-stats a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.profile-stats a:hover {
+  text-decoration: underline;
+}
