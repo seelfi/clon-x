@@ -1,27 +1,35 @@
+
+import { Link } from 'react-router-dom'
 import '../styles/Sidebar.css'
 
 function Sidebar() {
   return (
     <aside className="sidebar">
-      <h2 className="sidebar__logo">𝕏</h2>
+      <Link to="/" className="sidebar__logo">
+        𝕏
+      </Link>
 
       <nav className="sidebar__nav">
-        <a href="#" className="sidebar__link sidebar__link--active">
+        <Link to="/" className="sidebar__link sidebar__link--active">
           <span>⌂</span> Inicio
-        </a>
+        </Link>
 
-        <a href="#" className="sidebar__link">
-          <span>⌕</span> Explorar
-        </a>
-
-        <a href="#" className="sidebar__link">
+        <Link to="/users/pablo_dev" className="sidebar__link">
           <span>♙</span> Perfil
-        </a>
+        </Link>
+
+        <Link to="/users/pablo_dev/following" className="sidebar__link">
+          <span>♧</span> Siguiendo
+        </Link>
+
+        <Link to="/users/pablo_dev/followers" className="sidebar__link">
+          <span>♧</span> Seguidores
+        </Link>
       </nav>
 
-      <button className="sidebar__button">
+      <Link to="/publish" className="sidebar__button">
         Publicar
-      </button>
+      </Link>
     </aside>
   )
 }

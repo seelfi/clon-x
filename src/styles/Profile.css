@@ -1,0 +1,148 @@
+
+.profile-page {
+  min-height: 100vh;
+  max-width: 600px;
+  margin: 0 auto;
+  background: #000;
+  color: #e7e9ea;
+  border-left: 1px solid #2f3336;
+  border-right: 1px solid #2f3336;
+}
+
+.profile-header {
+  padding: 16px;
+  border-bottom: 1px solid #2f3336;
+}
+
+.profile-header a {
+  color: #1d9bf0;
+  text-decoration: none;
+}
+
+.profile-header h1 {
+  margin: 14px 0 4px;
+  font-size: 22px;
+}
+
+.profile-header p,
+.profile-info > p,
+.profile-tweet span,
+.profile-tweet small {
+  color: #71767b;
+}
+
+.profile-info {
+  padding: 20px 16px;
+  border-bottom: 1px solid #2f3336;
+}
+
+.profile-avatar {
+  width: 76px;
+  height: 76px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #1d9bf0;
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.profile-info h2 {
+  margin-bottom: 4px;
+}
+
+.profile-stats {
+  display: flex;
+  gap: 20px;
+  margin: 18px 0;
+  color: #71767b;
+}
+
+.profile-stats strong {
+  color: #e7e9ea;
+}
+
+.profile-info button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #e7e9ea;
+  color: #0f1419;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.profile-tweets h2 {
+  padding: 0 16px;
+  font-size: 18px;
+}
+
+.profile-tweet {
+  padding: 16px;
+  border-top: 1px solid #2f3336;
+}
+
+.profile-tweet p {
+  margin: 8px 0;
+}
+
+.user-list {
+  width: 100%;
+}
+
+.user-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #2f3336;
+  transition: background-color 0.2s ease;
+}
+
+.user-list-item:hover {
+  background-color: #080808;
+}
+
+.user-list-avatar {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background-color: #1d9bf0;
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.user-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-list-info h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.user-list-info p {
+  margin: 0;
+  color: #71767b;
+  font-size: 14px;
+}
+
+.user-list-item button {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background-color: #e7e9ea;
+  color: #0f1419;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.user-list-item button:hover {
+  background-color: #d7dbdc;
+}
