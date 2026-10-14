@@ -2,7 +2,7 @@
 import Sidebar from './components/Sidebar'
 import Feed from './components/Feed'
 import RightPanel from './components/RightPanel'
-import './App.css'
+import './styles/App.css'
 
 function App() {
   return (

@@ -1,3 +1,4 @@
+import '../styles/Feed.css'
 
 function Feed() {
   return (

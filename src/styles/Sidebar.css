@@ -1,0 +1,55 @@
+
+/* Menú lateral */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 12px;
+  border-right: 1px solid #2f3336;
+}
+
+.sidebar__logo {
+  font-size: 32px;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar__link {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border-radius: 24px;
+  color: #e7e9ea;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+.sidebar__link:hover {
+  background-color: #181818;
+}
+
+.sidebar__link--active {
+  font-weight: bold;
+}
+
+.sidebar__button {
+  padding: 14px;
+  border: none;
+  border-radius: 24px;
+  background-color: #eff3f4;
+  color: #0f1419;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.sidebar__button:hover {
+  background-color: #d7dbdc;
+}

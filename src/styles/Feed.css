@@ -1,0 +1,131 @@
+
+/* Feed central */
+.feed {
+  border-right: 1px solid #2f3336;
+  min-height: 100vh;
+}
+
+.feed__header {
+  position: sticky;
+  top: 0;
+  background-color: #000;
+  border-bottom: 1px solid #2f3336;
+  z-index: 1;
+}
+
+.feed__header h1 {
+  font-size: 20px;
+  padding: 16px;
+  margin: 0;
+}
+
+.feed__tabs {
+  display: flex;
+}
+
+.feed__tab {
+  flex: 1;
+  padding: 16px;
+  background: transparent;
+  color: #71767b;
+  border: none;
+  cursor: pointer;
+}
+
+.feed__tab--active {
+  color: #e7e9ea;
+  font-weight: bold;
+  border-bottom: 4px solid #1d9bf0;
+}
+
+/* Editor de publicaciones y tarjetas */
+.composer,
+.post {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-bottom: 1px solid #2f3336;
+}
+
+.composer__avatar,
+.post__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #333639;
+  font-weight: bold;
+}
+
+.composer__content,
+.post__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.composer textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 80px;
+  padding: 12px 0;
+  resize: vertical;
+  background: transparent;
+  color: #e7e9ea;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 18px;
+}
+
+.composer__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #2f3336;
+}
+
+.composer__actions span {
+  color: #1d9bf0;
+  font-size: 12px;
+}
+
+.composer__actions button {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+}
+
+.composer__actions button:disabled {
+  opacity: 0.5;
+}
+
+/* Información de la publicación */
+.post__author {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.post__author span {
+  color: #71767b;
+  font-size: 12px;
+}
+
+.post__body p {
+  line-height: 1.5;
+}
+
+.post__actions {
+  display: flex;
+  justify-content: space-between;
+  max-width: 400px;
+  color: #71767b;
+  font-size: 14px;
+}
