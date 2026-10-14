@@ -118,13 +118,28 @@
   font-size: 12px;
 }
 
+.post {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.post__body {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
 .post__body p {
+  margin: 8px 0 12px;
   line-height: 1.5;
+  white-space: pre-wrap;
 }
 
 .post__actions {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   max-width: 400px;
   color: #71767b;
   font-size: 14px;
