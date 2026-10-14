@@ -1,10 +1,21 @@
+
 import { useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
+import Tweet from './Tweet'
 import '../styles/Feed.css'
 
 function Feed() {
   const { posts, setPosts } = useOutletContext()
   const [content, setContent] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  const postsPerPage = 10
+  const totalPages = Math.ceil(posts.length / postsPerPage)
+  const startIndex = (currentPage - 1) * postsPerPage
+  const visiblePosts = posts.slice(
+    startIndex,
+    startIndex + postsPerPage
+  )
 
   function handlePublish() {
     const trimmedContent = content.trim()
@@ -23,6 +34,7 @@ function Feed() {
 
     setPosts((currentPosts) => [newPost, ...currentPosts])
     setContent('')
+    setCurrentPage(1)
   }
 
   return (
@@ -31,7 +43,10 @@ function Feed() {
         <h1>Inicio</h1>
 
         <div className="feed__tabs">
-          <button className="feed__tab feed__tab--active" type="button">
+          <button
+            className="feed__tab feed__tab--active"
+            type="button"
+          >
             Para ti
           </button>
 
@@ -67,28 +82,36 @@ function Feed() {
         </div>
       </section>
 
-      {posts.map((post) => (
-        <article className="post" key={post.id}>
-          <div className="post__avatar">
-            {post.author.charAt(0).toUpperCase()}
-          </div>
-
-          <div className="post__body">
-            <div className="post__author">
-              <strong>{post.author}</strong>
-              <span>@{post.author} · ahora</span>
-            </div>
-
-            <p>{post.content}</p>
-
-            <div className="post__actions">
-              <span>♡ {post.likes}</span>
-              <span>↻ 0</span>
-              <span>💬 0</span>
-            </div>
-          </div>
-        </article>
+      {visiblePosts.map((post) => (
+        <Tweet key={post.id} post={post} />
       ))}
+
+      {totalPages > 1 && (
+        <nav
+          className="pagination"
+          aria-label="Paginación de publicaciones"
+        >
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => page - 1)}
+            disabled={currentPage === 1}
+          >
+            Anterior
+          </button>
+
+          <span>
+            Página {currentPage} de {totalPages}
+          </span>
+
+          <button
+            type="button"
+            onClick={() => setCurrentPage((page) => page + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+          </button>
+        </nav>
+      )}
     </main>
   )
 }
