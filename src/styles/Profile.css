@@ -156,3 +156,90 @@
 .profile-stats a:hover {
   text-decoration: underline;
 }
+
+
+/* Acciones de cada usuario en las listas */
+.user-list-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 112px;
+}
+
+/* Botón Ver perfil */
+.user-list-actions .sidebar__button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 36px;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* Botones Seguir y Siguiendo */
+.user-list-actions button {
+  width: 100%;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid #536471;
+  border-radius: 999px;
+  background-color: #000;
+  color: #e7e9ea;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* Resaltar al pasar el cursor */
+.user-list-actions button:hover {
+  background-color: #202327;
+}
+
+/* Mejor distribución de cada fila */
+.user-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-list-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-list-info h3,
+.user-list-info p {
+  overflow-wrap: anywhere;
+}
+
+/* Adaptación a pantallas pequeñas */
+@media (max-width: 480px) {
+  .user-list-item {
+    gap: 8px;
+  }
+
+  .user-list-actions {
+    width: 96px;
+  }
+
+  .user-list-actions .sidebar__button,
+  .user-list-actions button {
+    font-size: 12px;
+    padding: 7px 6px;
+  }
+}

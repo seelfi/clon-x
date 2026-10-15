@@ -20,12 +20,27 @@ import './styles/App.css'
 function MainLayout() {
   const [posts, setPosts] = useState(mockPosts)
 
+  const [followingUsernames, setFollowingUsernames] = useState([
+    'ana_dev',
+    'carlos_code',
+    'laura_design',
+    'mateo_tech',
+    'sofia_web'
+  ])
+
   return (
     <div className="layout">
       <Sidebar />
 
       <main className="main-content">
-        <Outlet context={{ posts, setPosts }} />
+        <Outlet
+          context={{
+            posts,
+            setPosts,
+            followingUsernames,
+            setFollowingUsernames
+          }}
+        />
       </main>
 
       <RightPanel />
@@ -43,11 +58,17 @@ function App() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<Home />} />
         <Route path="/publish" element={<Publish />} />
-        <Route path="/users/:username" element={<Profile />} />
+
+        <Route
+          path="/users/:username"
+          element={<Profile />}
+        />
+
         <Route
           path="/users/:username/following"
           element={<Following />}
         />
+
         <Route
           path="/users/:username/followers"
           element={<Followers />}
