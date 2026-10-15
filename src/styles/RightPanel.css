@@ -59,3 +59,54 @@
   border: none;
   cursor: pointer;
 }
+
+
+.follow-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.follow-card form input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #333639;
+  border-radius: 999px;
+  background: #000;
+  color: #e7e9ea;
+  font: inherit;
+  outline: none;
+}
+
+.follow-card form input:focus {
+  border-color: #1d9bf0;
+}
+
+.follow-card form input::placeholder {
+  color: #71767b;
+}
+
+.follow-card form .show-more {
+  align-self: flex-start;
+  margin-top: 0;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #eff3f4;
+  color: #0f1419;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.follow-card form .show-more:hover {
+  background: #d7dbdc;
+}
+
+.follow-card__message {
+  margin: 10px 0 0;
+  color: #1d9bf0;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}

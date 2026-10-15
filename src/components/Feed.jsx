@@ -1,40 +1,76 @@
-
-import { useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
-import Tweet from './Tweet'
-import '../styles/Feed.css'
+import { useState } from "react";
+import { useOutletContext, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import Tweet from "./Tweet";
+import "../styles/Feed.css";
 
 function Feed() {
-  const { posts, setPosts } = useOutletContext()
-  const [content, setContent] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
+  const { posts, setPosts, followingUsernames, setFollowingUsernames } =
+    useOutletContext();
 
-  const postsPerPage = 10
-  const totalPages = Math.ceil(posts.length / postsPerPage)
-  const startIndex = (currentPage - 1) * postsPerPage
-  const visiblePosts = posts.slice(
-    startIndex,
-    startIndex + postsPerPage
-  )
+  const [usernameToFollow, setUsernameToFollow] = useState("");
+  const [followMessage, setFollowMessage] = useState("");
+  const navigate = useNavigate();
+  const [content, setContent] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const postsPerPage = 10;
+  const totalPages = Math.ceil(posts.length / postsPerPage);
+  const startIndex = (currentPage - 1) * postsPerPage;
+  const visiblePosts = posts.slice(startIndex, startIndex + postsPerPage);
 
   function handlePublish() {
-    const trimmedContent = content.trim()
+    const trimmedContent = content.trim();
 
     if (!trimmedContent || trimmedContent.length > 280) {
-      return
+      return;
     }
 
     const newPost = {
       id: Date.now(),
-      author: 'pablo_dev',
+      author: "pablo_dev",
       content: trimmedContent,
       likes: 0,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+    };
+
+    setPosts((currentPosts) => [newPost, ...currentPosts]);
+    setContent("");
+    setCurrentPage(1);
+  }
+
+  function handleFollow() {
+    const username = usernameToFollow.trim().replace(/^@/, "");
+
+    if (!username) {
+      setFollowMessage("Escribe un nombre de usuario.");
+      return;
     }
 
-    setPosts((currentPosts) => [newPost, ...currentPosts])
-    setContent('')
-    setCurrentPage(1)
+    if (username === "pablo_dev") {
+      setFollowMessage("No puedes seguirte a ti mismo.");
+      return;
+    }
+
+    const userExists = posts.some((post) => post.author === username);
+
+    if (!userExists) {
+      setFollowMessage("No encontramos ese usuario.");
+      return;
+    }
+
+    if (followingUsernames.includes(username)) {
+      setFollowMessage("Ya sigues a ese usuario.");
+      return;
+    }
+
+    setFollowingUsernames((currentUsernames) => [
+      ...currentUsernames,
+      username,
+    ]);
+
+    setFollowMessage(`Ahora sigues a @${username}.`);
+    setUsernameToFollow("");
   }
 
   return (
@@ -43,10 +79,7 @@ function Feed() {
         <h1>Inicio</h1>
 
         <div className="feed__tabs">
-          <button
-            className="feed__tab feed__tab--active"
-            type="button"
-          >
+          <button className="feed__tab feed__tab--active" type="button">
             Para ti
           </button>
 
@@ -87,10 +120,7 @@ function Feed() {
       ))}
 
       {totalPages > 1 && (
-        <nav
-          className="pagination"
-          aria-label="Paginación de publicaciones"
-        >
+        <nav className="pagination" aria-label="Paginación de publicaciones">
           <button
             type="button"
             onClick={() => setCurrentPage((page) => page - 1)}
@@ -113,7 +143,7 @@ function Feed() {
         </nav>
       )}
     </main>
-  )
+  );
 }
 
-export default Feed
+export default Feed;
