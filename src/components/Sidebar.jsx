@@ -1,10 +1,21 @@
-import { Link, NavLink } from 'react-router-dom'
+
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import '../styles/Sidebar.css'
 
 function Sidebar() {
+  const navigate = useNavigate()
+  const currentUser = {
+    fullName: 'Pablo Alvarez',
+    username: 'pablo_dev'
+  }
+
+  function handleLogout() {
+    navigate('/login')
+  }
+
   return (
     <aside className="sidebar">
-      <Link to="/" className="sidebar__logo">
+      <Link to="/" className="sidebar__logo" aria-label="Ir al inicio">
         𝕏
       </Link>
 
@@ -20,7 +31,7 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/users/pablo_dev"
+          to={`/users/${currentUser.username}`}
           end
           className={({ isActive }) =>
             `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
@@ -30,7 +41,7 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/users/pablo_dev/following"
+          to={`/users/${currentUser.username}/following`}
           className={({ isActive }) =>
             `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
           }
@@ -39,7 +50,7 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/users/pablo_dev/followers"
+          to={`/users/${currentUser.username}/followers`}
           className={({ isActive }) =>
             `sidebar__link ${isActive ? 'sidebar__link--active' : ''}`
           }
@@ -53,13 +64,22 @@ function Sidebar() {
       </Link>
 
       <div className="sidebar__auth">
-        <Link to="/login" className="sidebar__auth-link">
-          Iniciar sesión
-        </Link>
+        <div className="sidebar__user">
+          <div className="sidebar__user-avatar">P</div>
 
-        <Link to="/register" className="sidebar__auth-link">
-          Registro
-        </Link>
+          <div className="sidebar__user-info">
+            <strong>{currentUser.fullName}</strong>
+            <span>@{currentUser.username}</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          className="sidebar__auth-link"
+          onClick={handleLogout}
+        >
+          Cerrar sesión
+        </button>
       </div>
     </aside>
   )

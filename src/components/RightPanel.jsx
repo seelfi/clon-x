@@ -1,5 +1,5 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import '../styles/RightPanel.css'
 
 function RightPanel({
@@ -9,6 +9,16 @@ function RightPanel({
 }) {
   const [username, setUsername] = useState('')
   const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!message) return
+
+    const timeoutId = setTimeout(() => {
+      setMessage('')
+    }, 3000)
+
+    return () => clearTimeout(timeoutId)
+  }, [message])
 
   function handleFollow(event) {
     event.preventDefault()

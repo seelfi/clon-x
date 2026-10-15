@@ -86,3 +86,71 @@
 .sidebar__auth-link:hover {
   background-color: #181818;
 }
+
+
+.sidebar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 8px;
+  min-width: 0;
+}
+
+.sidebar__user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #1d9bf0;
+  color: #fff;
+  font-weight: 700;
+}
+
+.sidebar__user-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+
+.sidebar__user-info strong,
+.sidebar__user-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__user-info strong {
+  color: #e7e9ea;
+  font-size: 14px;
+}
+
+.sidebar__user-info span {
+  color: #71767b;
+  font-size: 13px;
+}
+
+.sidebar__auth-link {
+  display: block;
+  width: 100%;
+  padding: 12px 8px;
+  border: 0;
+  background: transparent;
+  color: #e7e9ea;
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sidebar__auth-link:hover {
+  background: #181818;
+  border-radius: 999px;
+}
+
+.sidebar__auth {
+  margin-top: auto;
+}
