@@ -1,6 +1,10 @@
 
 import { useState } from 'react'
-import { Link, useOutletContext, useParams } from 'react-router-dom'
+import {
+  Link,
+  useOutletContext,
+  useParams
+} from 'react-router-dom'
 import '../styles/Profile.css'
 
 const allUsers = [
@@ -17,17 +21,59 @@ const allUsers = [
 
 function Following() {
   const { username = 'pablo_dev' } = useParams()
-  const { followingUsernames } = useOutletContext()
+
+  const {
+    followingByUser,
+    followingUsernames,
+    setFollowingUsernames,
+    setFollowingByUser
+  } = useOutletContext()
+
   const [currentPage, setCurrentPage] = useState(1)
 
+  const isOwnProfile = username === 'pablo_dev'
+
+  const followedUsernames = isOwnProfile
+    ? followingUsernames
+    : followingByUser[username] || []
+
   const users = allUsers
-    .filter(user => followingUsernames.includes(user.username))
+    .filter(user => followedUsernames.includes(user.username))
     .sort((a, b) => a.fullName.localeCompare(b.fullName, 'es'))
 
   const usersPerPage = 10
   const totalPages = Math.max(1, Math.ceil(users.length / usersPerPage))
   const startIndex = (currentPage - 1) * usersPerPage
   const visibleUsers = users.slice(startIndex, startIndex + usersPerPage)
+
+  function handleFollow(targetUsername) {
+    if (isOwnProfile) {
+      setFollowingUsernames(currentUsernames => {
+        if (currentUsernames.includes(targetUsername)) {
+          return currentUsernames.filter(
+            currentUsername => currentUsername !== targetUsername
+          )
+        }
+
+        return [...currentUsernames, targetUsername]
+      })
+
+      return
+    }
+
+    setFollowingByUser(current => {
+      const currentUsernames = current[username] || []
+
+      const nextUsernames = currentUsernames.includes(targetUsername)
+        ? currentUsernames.filter(item => item !== targetUsername)
+        : [...currentUsernames, targetUsername]
+
+      return {
+        ...current,
+        [username]: nextUsernames
+      }
+    })
+  }
 
   return (
     <main className="profile-page">
@@ -40,28 +86,45 @@ function Following() {
 
       <section className="user-list">
         {visibleUsers.length > 0 ? (
-          visibleUsers.map(user => (
-            <article className="user-list-item" key={user.id}>
-              <div className="user-list-avatar">
-                {user.fullName.charAt(0)}
-              </div>
+          visibleUsers.map(user => {
+            const isFollowing = isOwnProfile
+              ? followingUsernames.includes(user.username)
+              : (followingByUser[username] || []).includes(user.username)
 
-              <div className="user-list-info">
-                <h3>{user.fullName}</h3>
-                <p>@{user.username}</p>
-              </div>
+            return (
+              <article className="user-list-item" key={user.id}>
+                <div className="user-list-avatar">
+                  {user.fullName.charAt(0).toUpperCase()}
+                </div>
 
-              <Link
-                to={`/users/${user.username}`}
-                className="sidebar__button"
-              >
-                Ver perfil
-              </Link>
-            </article>
-          ))
+                <div className="user-list-info">
+                  <h3>{user.fullName}</h3>
+                  <p>@{user.username}</p>
+                </div>
+
+                <div className="user-list-actions">
+                  <Link
+                    to={`/users/${user.username}`}
+                    className="sidebar__button"
+                  >
+                    Ver perfil
+                  </Link>
+
+                  {user.username !== username && (
+                    <button
+                      type="button"
+                      onClick={() => handleFollow(user.username)}
+                    >
+                      {isFollowing ? 'Siguiendo' : 'Seguir'}
+                    </button>
+                  )}
+                </div>
+              </article>
+            )
+          })
         ) : (
           <p className="empty-state">
-            Todavía no sigues a ningún usuario.
+            Este usuario todavía no sigue a nadie.
           </p>
         )}
       </section>
@@ -77,9 +140,7 @@ function Following() {
               Anterior
             </button>
 
-            <span>
-              Página {currentPage} de {totalPages}
-            </span>
+            <span>Página {currentPage} de {totalPages}</span>
 
             <button
               type="button"
