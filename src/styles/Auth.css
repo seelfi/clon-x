@@ -1,70 +1,120 @@
 
+/* Pantalla de autenticación */
 .auth-page {
   min-height: 100vh;
-  box-sizing: border-box;
-  background: #000;
-  color: #e7e9ea;
   display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 24px;
+  justify-content: center;
+  padding: 32px 16px;
+  background-color: #000;
+  color: #e7e9ea;
+  box-sizing: border-box;
 }
 
+/* Tarjeta del formulario */
 .auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  padding: 32px;
+  background-color: #16181c;
+  border: 1px solid #2f3336;
+  border-radius: 20px;
+  box-sizing: border-box;
 }
 
+/* Título y descripción */
 .auth-card h1 {
+  margin: 0 0 8px;
   font-size: 30px;
-  margin-bottom: 8px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .auth-card > p {
-  color: #71767b;
-  margin-bottom: 24px;
+  margin: 0 0 24px;
+  color: #aeb5bb;
+  text-align: center;
+  line-height: 1.5;
 }
 
+/* Formulario vertical */
 .auth-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
 }
 
 .auth-form label {
+  margin-top: 6px;
+  color: #e7e9ea;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .auth-form input {
-  box-sizing: border-box;
   width: 100%;
-  padding: 14px;
-  margin-bottom: 10px;
-  background: #000;
-  color: #e7e9ea;
-  border: 1px solid #333639;
+  min-height: 46px;
+  padding: 12px;
+  box-sizing: border-box;
+  border: 1px solid #3e4144;
   border-radius: 8px;
-  font-size: 15px;
+  background-color: #000;
+  color: #e7e9ea;
+  font: inherit;
+  outline: none;
+}
+
+.auth-form input::placeholder {
+  color: #71767b;
 }
 
 .auth-form input:focus {
-  outline: none;
   border-color: #1d9bf0;
+  box-shadow: 0 0 0 1px #1d9bf0;
 }
 
+/* Botón principal */
 .auth-form button {
-  padding: 13px;
+  min-height: 44px;
+  margin-top: 14px;
+  padding: 12px 16px;
   border: none;
   border-radius: 999px;
-  background: #1d9bf0;
-  color: white;
+  background-color: #1d9bf0;
+  color: #fff;
   font-size: 15px;
-  font-weight: bold;
+  font-weight: 700;
   cursor: pointer;
-  margin-top: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.auth-form button:hover {
+  background-color: #1a8cd8;
+}
+
+/* Enlaces inferiores */
+.auth-card > p:last-child {
+  margin: 24px 0 0;
+  font-size: 14px;
 }
 
 .auth-card a {
   color: #1d9bf0;
   text-decoration: none;
+}
+
+.auth-card a:hover {
+  text-decoration: underline;
+}
+
+/* Adaptación a móviles */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 24px 20px;
+  }
+
+  .auth-card h1 {
+    font-size: 26px;
+  }
 }
