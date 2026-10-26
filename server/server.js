@@ -11,11 +11,14 @@ const authRoutes = require('./routes/auth')
 const usersRoutes = require('./routes/users')
 const tweetsRoutes = require('./routes/tweets')
 const feedRoutes = require('./routes/feed')
+const followsRoutes = require('./routes/follows')
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/tweets', tweetsRoutes)
 app.use('/api/feed', feedRoutes)
+app.use('/api/follows', followsRoutes)
+
 const posts = [
   {
     id: 1,
