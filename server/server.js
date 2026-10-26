@@ -7,6 +7,12 @@ const PORT = 3000
 app.use(cors())
 app.use(express.json())
 
+const authRoutes = require('./routes/auth')
+const usersRoutes = require('./routes/users')
+
+app.use('/api/auth', authRoutes)
+app.use('/api/users', usersRoutes)
+
 const posts = [
   {
     id: 1,
@@ -19,7 +25,6 @@ const posts = [
 app.get('/api/posts', (req, res) => {
   res.json(posts)
 })
-
 
 app.post('/api/posts', (req, res) => {
   const { content, author } = req.body
