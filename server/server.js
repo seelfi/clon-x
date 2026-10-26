@@ -9,9 +9,11 @@ app.use(express.json())
 
 const authRoutes = require('./routes/auth')
 const usersRoutes = require('./routes/users')
+const tweetsRoutes = require('./routes/tweets')
 
 app.use('/api/auth', authRoutes)
 app.use('/api/users', usersRoutes)
+app.use('/api/tweets', tweetsRoutes)
 
 const posts = [
   {
