@@ -1,12 +1,20 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 async function request(endpoint, options = {}) {
+  const token = localStorage.getItem('token')
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers
-    }
+    headers
   })
 
   const data = await response.json()
@@ -36,6 +44,19 @@ export function register(fullName, username, email, password) {
       username,
       email,
       password
+    })
+  })
+}
+
+export function getFeed(page = 1, size = 10) {
+  return request(`/feed?page=${page}&size=${size}`)
+}
+
+export function createTweet(content) {
+  return request('/tweets', {
+    method: 'POST',
+    body: JSON.stringify({
+      content
     })
   })
 }

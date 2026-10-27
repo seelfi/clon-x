@@ -1,10 +1,13 @@
 import { useState } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { createTweet } from '../services/api'
 import '../styles/Publish.css'
 
 function Publish() {
   const [content, setContent] = useState('')
-  const { setPosts } = useOutletContext()
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
   const navigate = useNavigate()
 
   const maxCharacters = 280
@@ -14,7 +17,7 @@ function Publish() {
     setContent(event.target.value)
   }
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
 
     const trimmedContent = content.trim()
@@ -23,17 +26,19 @@ function Publish() {
       return
     }
 
-    const newPost = {
-      id: Date.now(),
-      author: 'pablo_dev',
-      content: trimmedContent,
-      likes: 0,
-      createdAt: new Date().toISOString()
-    }
+    setError('')
+    setLoading(true)
 
-    setPosts((currentPosts) => [newPost, ...currentPosts])
-    setContent('')
-    navigate('/')
+    try {
+      await createTweet(trimmedContent)
+
+      setContent('')
+      navigate('/')
+    } catch (error) {
+      setError(error.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -41,8 +46,13 @@ function Publish() {
       <section className="publish-container">
         <h1>Publicar un tweet</h1>
 
-        <form className="publish-form" onSubmit={handleSubmit}>
-          <label htmlFor="tweet-content">¿Qué está pasando?</label>
+        <form
+          className="publish-form"
+          onSubmit={handleSubmit}
+        >
+          <label htmlFor="tweet-content">
+            ¿Qué está pasando?
+          </label>
 
           <textarea
             id="tweet-content"
@@ -54,15 +64,23 @@ function Publish() {
           />
 
           <div className="publish-footer">
-            <span>Caracteres restantes: {remainingCharacters}</span>
+            <span>
+              Caracteres restantes: {remainingCharacters}
+            </span>
 
             <button
               type="submit"
-              disabled={!content.trim()}
+              disabled={!content.trim() || loading}
             >
-              Publicar
+              {loading ? 'Publicando...' : 'Publicar'}
             </button>
           </div>
+
+          {error && (
+            <p className="auth-error">
+              {error}
+            </p>
+          )}
         </form>
       </section>
     </main>
