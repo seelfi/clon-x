@@ -4,6 +4,7 @@ import { useState } from "react";
 import Sidebar from "./components/Sidebar";
 import Feed from "./components/Feed";
 import RightPanel from "./components/RightPanel";
+import PrivateRoute from "./components/PrivateRoute";
 
 import Publish from "./pages/Publish";
 import Profile from "./pages/Profile";
@@ -38,7 +39,7 @@ function MainLayout() {
   const [posts, setPosts] = useState(mockPosts);
 
   const [followingByUser, setFollowingByUser] = useState(
-    initialFollowingByUser,
+    initialFollowingByUser
   );
 
   const followingUsernames = followingByUser.pablo_dev || [];
@@ -48,7 +49,9 @@ function MainLayout() {
       const currentUsernames = current.pablo_dev || [];
 
       const nextUsernames =
-        typeof updater === "function" ? updater(currentUsernames) : updater;
+        typeof updater === "function"
+          ? updater(currentUsernames)
+          : updater;
 
       return {
         ...current,
@@ -90,20 +93,36 @@ function Home() {
 function App() {
   return (
     <Routes>
-      <Route element={<MainLayout />}>
-        <Route path="/" element={<Home />} />
-        <Route path="/publish" element={<Publish />} />
+      {/* Private routes */}
+      <Route element={<PrivateRoute />}>
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
 
-        <Route path="/users/:username" element={<Profile />} />
+          <Route path="/publish" element={<Publish />} />
 
-        <Route path="/users/:username/following" element={<Following />} />
+          <Route
+            path="/users/:username"
+            element={<Profile />}
+          />
 
-        <Route path="/users/:username/followers" element={<Followers />} />
+          <Route
+            path="/users/:username/following"
+            element={<Following />}
+          />
+
+          <Route
+            path="/users/:username/followers"
+            element={<Followers />}
+          />
+        </Route>
       </Route>
 
+      {/* Public routes */}
       <Route path="/login" element={<Login />} />
+
       <Route path="/register" element={<Register />} />
 
+      {/* Not found */}
       <Route
         path="*"
         element={
