@@ -33,7 +33,11 @@ function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <Link to="/" className="sidebar__logo" aria-label="TdeA X, inicio">
+      <Link
+        to="/"
+        className="sidebar__logo"
+        aria-label="TdeA X, inicio"
+      >
         <span className="sidebar__logo-mark">𝕏</span>
         <span className="sidebar__logo-text">TdeA X</span>
       </Link>

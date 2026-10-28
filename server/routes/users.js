@@ -83,6 +83,56 @@ router.put('/me/bio', authMiddleware, async (req, res) => {
   }
 })
 
+// Search users by name or username
+router.get('/search', authMiddleware, async (req, res) => {
+  try {
+    const query = String(req.query.q || '').trim()
+
+    if (!query) {
+      return res.status(200).json({
+        items: [],
+      })
+    }
+
+    const searchTerm = `%${query}%`
+
+    const [users] = await pool.execute(
+      `SELECT id, full_name, username
+       FROM users
+       WHERE username LIKE ?
+          OR full_name LIKE ?
+       ORDER BY
+         CASE
+           WHEN username = ? THEN 0
+           WHEN username LIKE ? THEN 1
+           ELSE 2
+         END,
+         username ASC
+       LIMIT 8`,
+      [
+        searchTerm,
+        searchTerm,
+        query,
+        `${query}%`,
+      ]
+    )
+
+    return res.status(200).json({
+      items: users.map((user) => ({
+        id: user.id,
+        fullName: user.full_name,
+        username: user.username,
+      })),
+    })
+  } catch (error) {
+    console.error('Error searching users:', error)
+
+    return res.status(500).json({
+      message: 'Internal server error',
+    })
+  }
+})
+
 // Get a public user profile
 router.get('/:username', authMiddleware, async (req, res) => {
   try {
