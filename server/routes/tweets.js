@@ -1,35 +1,38 @@
-const express = require('express')
-const pool = require('../db')
-const authMiddleware = require('../middleware/authMiddleware')
 
-const router = express.Router()
+const express = require("express");
+const pool = require("../db");
+const authMiddleware = require("../middleware/authMiddleware");
 
-router.post('/', authMiddleware, async (req, res) => {
+const router = express.Router();
+
+router.post("/", authMiddleware, async (req, res) => {
   try {
-    const { content } = req.body
+    const { content } = req.body;
 
-    // Validar contenido
-    if (!content || !content.trim()) {
+    // Validate tweet content
+    if (typeof content !== "string" || !content.trim()) {
       return res.status(400).json({
-        message: 'El contenido del tweet es obligatorio'
-      })
+        message: "Tweet content is required",
+      });
     }
 
-    // Validar longitud máxima
-    if (content.length > 280) {
+    const trimmedContent = content.trim();
+
+    // Validate maximum length
+    if (trimmedContent.length > 280) {
       return res.status(400).json({
-        message: 'El tweet no puede superar los 280 caracteres'
-      })
+        message: "Tweet cannot exceed 280 characters",
+      });
     }
 
-    // Crear tweet asociado al usuario autenticado
+    // Create tweet for the authenticated user
     const [result] = await pool.execute(
       `INSERT INTO tweets (author_id, content)
        VALUES (?, ?)`,
-      [req.user.id, content.trim()]
-    )
+      [req.user.id, trimmedContent]
+    );
 
-    // Obtener el tweet recién creado
+    // Get the newly created tweet
     const [tweets] = await pool.execute(
       `SELECT
          t.id,
@@ -42,27 +45,27 @@ router.post('/', authMiddleware, async (req, res) => {
        INNER JOIN users u ON t.author_id = u.id
        WHERE t.id = ?`,
       [result.insertId]
-    )
+    );
 
-    const tweet = tweets[0]
+    const tweet = tweets[0];
 
-    res.status(201).json({
+    return res.status(201).json({
       id: tweet.id,
       content: tweet.content,
       createdAt: tweet.created_at,
       author: {
         id: tweet.author_id,
         fullName: tweet.full_name,
-        username: tweet.username
-      }
-    })
+        username: tweet.username,
+      },
+    });
   } catch (error) {
-    console.error('Error al crear tweet:', error)
+    console.error("Error creating tweet:", error);
 
-    res.status(500).json({
-      message: 'Error interno del servidor'
-    })
+    return res.status(500).json({
+      message: "Internal server error",
+    });
   }
-})
+});
 
-module.exports = router
+module.exports = router;

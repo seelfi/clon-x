@@ -1,101 +1,163 @@
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
-const pool = require("../db");
 const jwt = require("jsonwebtoken");
+const pool = require("../db");
 
 const router = express.Router();
 
+// Register a new user
 router.post("/register", async (req, res) => {
   try {
     const { fullName, username, email, password } = req.body;
 
-    // Validar campos obligatorios
-    if (!fullName || !username || !email || !password) {
+    // Validate required fields
+    if (
+      typeof fullName !== "string" ||
+      typeof username !== "string" ||
+      typeof email !== "string" ||
+      typeof password !== "string" ||
+      !fullName.trim() ||
+      !username.trim() ||
+      !email.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         message: "Todos los campos son obligatorios",
       });
     }
 
-    // Validar contraseña
+    // Normalize user information
+    const normalizedFullName = fullName.trim();
+    const normalizedUsername = username.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Validate email format
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailPattern.test(normalizedEmail)) {
+      return res.status(400).json({
+        message: "El formato del correo electrónico no es válido",
+      });
+    }
+
+    // Validate password length
     if (password.length < 8) {
       return res.status(400).json({
         message: "La contraseña debe tener mínimo 8 caracteres",
       });
     }
 
-    // Verificar si username o email ya existen
+    // Check whether the username or email already exists
     const [existingUsers] = await pool.execute(
       "SELECT id FROM users WHERE username = ? OR email = ?",
-      [username, email],
+      [normalizedUsername, normalizedEmail]
     );
 
     if (existingUsers.length > 0) {
       return res.status(409).json({
-        message: "El nombre de usuario o correo ya existe",
+        message: "El nombre de usuario o el correo electrónico ya existe",
       });
     }
 
-    // Generar hash de la contraseña
+    // Hash the password before storing it
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Crear usuario
+    // Insert the new user into the database
     const [result] = await pool.execute(
       `INSERT INTO users
-       (full_name, username, email, password_hash)
+        (full_name, username, email, password_hash)
        VALUES (?, ?, ?, ?)`,
-      [fullName, username, email, passwordHash],
+      [
+        normalizedFullName,
+        normalizedUsername,
+        normalizedEmail,
+        passwordHash,
+      ]
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "Usuario registrado correctamente",
       user: {
         id: result.insertId,
-        fullName,
-        username,
-        email,
+        fullName: normalizedFullName,
+        username: normalizedUsername,
+        email: normalizedEmail,
       },
     });
   } catch (error) {
     console.error("Error al registrar usuario:", error);
 
-    res.status(500).json({
-      message: "Error interno del servidor",
+    // Handle duplicate entries detected by database constraints
+    if (error.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        message: "El nombre de usuario o el correo electrónico ya existe",
+      });
+    }
+
+    return res.status(500).json({
+      message: "Error interno del servidor al registrar el usuario",
     });
   }
 });
+
+// Log in an existing user
 router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    if (!username || !password) {
+    // Validate required fields
+    if (
+      typeof username !== "string" ||
+      typeof password !== "string" ||
+      !username.trim() ||
+      !password
+    ) {
       return res.status(400).json({
         message: "El nombre de usuario y la contraseña son obligatorios",
       });
     }
 
+    const normalizedUsername = username.trim();
+
+    // Find the user by username
     const [users] = await pool.execute(
-      "SELECT id, full_name, username, email, password_hash FROM users WHERE username = ?",
-      [username],
+      `SELECT id, full_name, username, email, password_hash
+       FROM users
+       WHERE username = ?`,
+      [normalizedUsername]
     );
 
     if (users.length === 0) {
       return res.status(401).json({
-        message: "Correo o contraseña incorrectos",
+        message: "Usuario o contraseña incorrectos",
       });
     }
 
     const user = users[0];
 
-    // Comparar contraseña con el hash almacenado
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    // Compare the submitted password with the stored hash
+    const passwordMatch = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
 
     if (!passwordMatch) {
       return res.status(401).json({
-        message: "Correo o contraseña incorrectos",
+        message: "Usuario o contraseña incorrectos",
       });
     }
 
-    // Crear JWT
+    // Ensure the JWT secret is configured
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET no está configurado");
+
+      return res.status(500).json({
+        message: "Error de configuración del servidor",
+      });
+    }
+
+    // Generate the authentication token
     const token = jwt.sign(
       {
         id: user.id,
@@ -104,10 +166,10 @@ router.post("/login", async (req, res) => {
       process.env.JWT_SECRET,
       {
         expiresIn: "2h",
-      },
+      }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Inicio de sesión exitoso",
       token,
       user: {
@@ -120,10 +182,10 @@ router.post("/login", async (req, res) => {
   } catch (error) {
     console.error("Error al iniciar sesión:", error);
 
-    res.status(500).json({
-      message: "Error interno del servidor",
+    return res.status(500).json({
+      message: "Error interno del servidor al iniciar sesión",
     });
   }
 });
-module.exports = router;
+
 module.exports = router;

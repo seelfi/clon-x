@@ -1,16 +1,13 @@
+
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
 import Tweet from "./Tweet";
 import { getFeed } from "../services/api";
 import "../styles/Feed.css";
 
 function Feed() {
-  useOutletContext();
-
   const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,6 +24,8 @@ function Feed() {
         const formattedPosts = data.items.map((tweet) => ({
           id: tweet.id,
           author: tweet.author.username,
+          authorName: tweet.author.fullName,
+          authorUsername: tweet.author.username,
           content: tweet.content,
           likes: 0,
           createdAt: tweet.createdAt,
@@ -35,7 +34,7 @@ function Feed() {
         setPosts(formattedPosts);
         setTotalPages(data.totalPages);
       } catch (error) {
-        setError(error.message);
+        setError(error.message || "No fue posible cargar las publicaciones.");
       } finally {
         setLoading(false);
       }
@@ -59,7 +58,13 @@ function Feed() {
           <h1>Inicio</h1>
         </header>
 
-        <p>Cargando publicaciones...</p>
+        <div className="feed__status" role="status">
+          <div className="feed__status-icon" aria-hidden="true">
+            ↻
+          </div>
+          <h2>Cargando tu inicio</h2>
+          <p>Estamos buscando las publicaciones para ti.</p>
+        </div>
       </main>
     );
   }
@@ -71,7 +76,13 @@ function Feed() {
           <h1>Inicio</h1>
         </header>
 
-        <p>{error}</p>
+        <div className="feed__status" role="alert">
+          <div className="feed__status-icon" aria-hidden="true">
+            !
+          </div>
+          <h2>No pudimos cargar el inicio</h2>
+          <p>{error}</p>
+        </div>
       </main>
     );
   }
@@ -89,24 +100,25 @@ function Feed() {
             Para ti
           </button>
 
-          <button
-            className="feed__tab"
-            type="button"
-          >
+          <button className="feed__tab" type="button">
             Siguiendo
           </button>
         </div>
       </header>
 
       {posts.length === 0 ? (
-        <p>No hay publicaciones para mostrar.</p>
+        <div className="feed__status">
+          <div className="feed__status-icon" aria-hidden="true">
+            ✧
+          </div>
+          <h2>Tu próxima conversación empieza aquí</h2>
+          <p>
+            Todavía no hay publicaciones para mostrar. Puedes compartir
+            una idea o seguir a otras personas para descubrir contenido.
+          </p>
+        </div>
       ) : (
-        posts.map((post) => (
-          <Tweet
-            key={post.id}
-            post={post}
-          />
-        ))
+        posts.map((post) => <Tweet key={post.id} post={post} />)
       )}
 
       {totalPages > 1 && (

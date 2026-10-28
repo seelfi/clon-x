@@ -60,3 +60,28 @@ export function createTweet(content) {
     })
   })
 }
+
+export function getUserProfile(username) {
+  return request(`/users/${encodeURIComponent(username)}`)
+}
+
+export function followUser(username) {
+  return request('/follows', {
+    method: 'POST',
+    body: JSON.stringify({ username }),
+  })
+}
+
+export function unfollowUser(username) {
+  return request('/follows', {
+    method: 'DELETE',
+    body: JSON.stringify({ username }),
+  })
+}
+
+export function updateBio(bio) {
+  return request('/users/me/bio', {
+    method: 'PUT',
+    body: JSON.stringify({ bio }),
+  })
+}

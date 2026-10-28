@@ -1,112 +1,225 @@
 
-/* Panel derecho */
+/* Right sidebar */
 .right-panel {
-  padding-top: 8px;
+  align-self: start;
+  width: 100%;
+  min-width: 0;
+  padding: 18px 0 24px;
+  color: var(--app-text, #e7edf5);
 }
 
-/* Buscador */
-.search-box input {
-  box-sizing: border-box;
+.right-panel > * {
+  margin-bottom: 18px;
+}
+
+/* Search */
+.search-box {
+  position: relative;
   width: 100%;
-  padding: 14px 18px;
-  background: #202327;
-  color: #e7e9ea;
-  border: 1px solid transparent;
-  border-radius: 24px;
+}
+
+.search-box::before {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  color: #8c9aab;
+  font-size: 17px;
+  content: "⌕";
+  transform: translateY(-52%);
+  pointer-events: none;
+}
+
+.search-box input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: 12px 16px 12px 42px;
+  border: 1px solid #2a3849;
+  border-radius: 13px;
   outline: none;
-  font-size: 14px;
+  background: #101722;
+  color: var(--app-text, #e7edf5);
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.search-box input::placeholder {
+  color: #8292a6;
 }
 
 .search-box input:focus {
-  border-color: #1d9bf0;
-  background: #000;
+  border-color: var(--app-blue, #2997ff);
+  background: #111c2a;
+  box-shadow: 0 0 0 3px rgb(41 151 255 / 10%);
 }
 
-/* Tarjeta de tendencias */
+/* Shared panel cards */
 .panel-card {
-  margin-top: 16px;
-  padding: 16px;
-  border: 1px solid #2f3336;
-  border-radius: 16px;
+  min-width: 0;
+  margin-top: 18px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid var(--app-border, #253140);
+  border-radius: 18px;
+  background: linear-gradient(145deg, #101722, #0c121b);
+  transition: border-color 0.2s ease;
+}
+
+.panel-card:hover {
+  border-color: #34465b;
 }
 
 .panel-card h2 {
-  margin-top: 0;
-  font-size: 20px;
+  margin: 0 0 15px;
+  color: var(--app-text, #e7edf5);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  line-height: 1.4;
 }
 
-.trend {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 14px 0;
+/* Follow user card */
+.follow-card {
+  background:
+    radial-gradient(ellipse at 100% 0%, rgb(41 151 255 / 8%), transparent 65%),
+    linear-gradient(145deg, #101722, #0c121b);
 }
-
-.trend span,
-.trend small {
-  color: #71767b;
-  font-size: 12px;
-}
-
-.trend strong {
-  font-size: 15px;
-}
-
-.show-more {
-  padding: 12px 0;
-  background: transparent;
-  color: #1d9bf0;
-  border: none;
-  cursor: pointer;
-}
-
 
 .follow-card form {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 11px;
 }
 
 .follow-card form input {
+  display: block;
   width: 100%;
   min-width: 0;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  border: 1px solid #333639;
-  border-radius: 999px;
-  background: #000;
-  color: #e7e9ea;
-  font: inherit;
+  min-height: 42px;
+  padding: 11px 13px;
+  border: 1px solid #34465a;
+  border-radius: 11px;
   outline: none;
-}
-
-.follow-card form input:focus {
-  border-color: #1d9bf0;
+  background: #080d14;
+  color: var(--app-text, #e7edf5);
+  font: inherit;
+  font-size: 13px;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .follow-card form input::placeholder {
-  color: #71767b;
+  color: #8292a6;
+}
+
+.follow-card form input:focus {
+  border-color: var(--app-blue, #2997ff);
+  box-shadow: 0 0 0 3px rgb(41 151 255 / 10%);
 }
 
 .follow-card form .show-more {
   align-self: flex-start;
-  margin-top: 0;
-  padding: 8px 18px;
-  border: 0;
-  border-radius: 999px;
-  background: #eff3f4;
-  color: #0f1419;
-  font-weight: 700;
+  min-height: 36px;
+  margin: 0;
+  padding: 9px 17px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(100deg, #1688f5, #39a6ff);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
   cursor: pointer;
+  transition:
+    filter 0.2s ease,
+    transform 0.2s ease;
 }
 
 .follow-card form .show-more:hover {
-  background: #d7dbdc;
+  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
 
 .follow-card__message {
-  margin: 10px 0 0;
-  color: #1d9bf0;
-  font-size: 13px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid rgb(41 151 255 / 20%);
+  border-radius: 10px;
+  background: rgb(41 151 255 / 7%);
+  color: #81c6ff;
+  font-size: 12px;
+  line-height: 1.6;
   overflow-wrap: anywhere;
+}
+
+/* Trends */
+.trend {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  margin: 0 -8px;
+  padding: 13px 8px;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.trend:hover {
+  background: rgb(255 255 255 / 3%);
+}
+
+.trend span {
+  color: var(--app-muted, #8c9aab);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.trend strong {
+  color: #e9f2fc;
+  font-size: 13px;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.trend small {
+  color: #77899d;
+  font-size: 10px;
+}
+
+/* More button */
+.show-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 4px;
+  padding: 10px 0;
+  border: none;
+  background: transparent;
+  color: var(--app-blue, #2997ff);
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.show-more:hover {
+  color: #8bcaff;
+}
+
+/* Keyboard accessibility */
+.right-panel button:focus-visible,
+.right-panel input:focus-visible {
+  outline: 2px solid #7cc5ff;
+  outline-offset: 3px;
+}
+
+/* Responsive panel */
+@media (max-width: 1250px) {
+  .right-panel {
+    display: none;
+  }
 }

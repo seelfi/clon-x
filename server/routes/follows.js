@@ -1,16 +1,18 @@
+
 const express = require('express')
 const pool = require('../db')
 const authMiddleware = require('../middleware/authMiddleware')
 
 const router = express.Router()
 
+// Follow a user
 router.post('/', authMiddleware, async (req, res) => {
   try {
     const { username } = req.body
 
     if (!username) {
       return res.status(400).json({
-        message: 'El nombre de usuario es obligatorio'
+        message: 'Username is required',
       })
     }
 
@@ -23,15 +25,15 @@ router.post('/', authMiddleware, async (req, res) => {
 
     if (users.length === 0) {
       return res.status(404).json({
-        message: 'Usuario no encontrado'
+        message: 'User not found',
       })
     }
 
     const followedUser = users[0]
 
-    if (followedUser.id === req.user.id) {
+    if (Number(followedUser.id) === Number(req.user.id)) {
       return res.status(400).json({
-        message: 'No puedes seguirte a ti mismo'
+        message: 'You cannot follow yourself',
       })
     }
 
@@ -45,7 +47,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     if (existingFollow.length > 0) {
       return res.status(409).json({
-        message: 'Ya sigues a este usuario'
+        message: 'You already follow this user',
       })
     }
 
@@ -55,19 +57,201 @@ router.post('/', authMiddleware, async (req, res) => {
       [req.user.id, followedUser.id]
     )
 
-    res.status(201).json({
-      message: 'Usuario seguido correctamente',
+    return res.status(201).json({
+      message: 'User followed successfully',
       user: {
         id: followedUser.id,
         fullName: followedUser.full_name,
-        username: followedUser.username
-      }
+        username: followedUser.username,
+      },
     })
   } catch (error) {
-    console.error('Error al seguir usuario:', error)
+    console.error('Error following user:', error)
 
-    res.status(500).json({
-      message: 'Error interno del servidor'
+    return res.status(500).json({
+      message: 'Internal server error',
+    })
+  }
+})
+
+// Unfollow a user
+router.delete('/', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.body
+
+    if (!username) {
+      return res.status(400).json({
+        message: 'Username is required',
+      })
+    }
+
+    const [users] = await pool.execute(
+      `SELECT id, username
+       FROM users
+       WHERE username = ?`,
+      [username]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'User not found',
+      })
+    }
+
+    const followedUser = users[0]
+
+    if (Number(followedUser.id) === Number(req.user.id)) {
+      return res.status(400).json({
+        message: 'You cannot unfollow yourself',
+      })
+    }
+
+    const [result] = await pool.execute(
+      `DELETE FROM follows
+       WHERE follower_id = ?
+         AND followed_id = ?`,
+      [req.user.id, followedUser.id]
+    )
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        message: 'You do not follow this user',
+      })
+    }
+
+    return res.status(200).json({
+      message: 'User unfollowed successfully',
+      username: followedUser.username,
+    })
+  } catch (error) {
+    console.error('Error unfollowing user:', error)
+
+    return res.status(500).json({
+      message: 'Internal server error',
+    })
+  }
+})
+
+// Get a user's followers
+router.get('/:username/followers', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.params
+
+    const [users] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'User not found',
+      })
+    }
+
+    const userId = users[0].id
+
+    const [followers] = await pool.execute(
+      `SELECT
+         u.id,
+         u.full_name AS fullName,
+         u.username
+       FROM follows f
+       INNER JOIN users u ON u.id = f.follower_id
+       WHERE f.followed_id = ?
+       ORDER BY u.username ASC`,
+      [userId]
+    )
+
+    return res.status(200).json({
+      items: followers,
+      totalItems: followers.length,
+    })
+  } catch (error) {
+    console.error('Error getting followers:', error)
+
+    return res.status(500).json({
+      message: 'Internal server error',
+    })
+  }
+})
+
+// Get users followed by a user
+router.get('/:username/following', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.params
+
+    const [users] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'User not found',
+      })
+    }
+
+    const userId = users[0].id
+
+    const [following] = await pool.execute(
+      `SELECT
+         u.id,
+         u.full_name AS fullName,
+         u.username
+       FROM follows f
+       INNER JOIN users u ON u.id = f.followed_id
+       WHERE f.follower_id = ?
+       ORDER BY u.username ASC`,
+      [userId]
+    )
+
+    return res.status(200).json({
+      items: following,
+      totalItems: following.length,
+    })
+  } catch (error) {
+    console.error('Error getting following:', error)
+
+    return res.status(500).json({
+      message: 'Internal server error',
+    })
+  }
+})
+
+// Check whether the authenticated user follows a user
+router.get('/:username/status', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.params
+
+    const [users] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    )
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'User not found',
+      })
+    }
+
+    const followedUserId = users[0].id
+
+    const [follows] = await pool.execute(
+      `SELECT follower_id
+       FROM follows
+       WHERE follower_id = ?
+         AND followed_id = ?`,
+      [req.user.id, followedUserId]
+    )
+
+    return res.status(200).json({
+      isFollowing: follows.length > 0,
+    })
+  } catch (error) {
+    console.error('Error checking follow status:', error)
+
+    return res.status(500).json({
+      message: 'Internal server error',
     })
   }
 })
