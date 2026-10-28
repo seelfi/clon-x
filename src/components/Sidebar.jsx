@@ -1,21 +1,32 @@
-
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import '../styles/Sidebar.css'
 
 function Sidebar() {
   const navigate = useNavigate()
-  const currentUser = {
-    fullName: 'Pablo Alvarez',
-    username: 'pablo_dev'
-  }
+
+  const storedUser = localStorage.getItem('user')
+
+  const currentUser = storedUser
+    ? JSON.parse(storedUser)
+    : {
+        fullName: 'Usuario',
+        username: 'usuario'
+      }
 
   function handleLogout() {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+
     navigate('/login')
   }
 
   return (
     <aside className="sidebar">
-      <Link to="/" className="sidebar__logo" aria-label="Ir al inicio">
+      <Link
+        to="/"
+        className="sidebar__logo"
+        aria-label="Ir al inicio"
+      >
         𝕏
       </Link>
 
@@ -59,13 +70,18 @@ function Sidebar() {
         </NavLink>
       </nav>
 
-      <Link to="/publish" className="sidebar__button">
+      <Link
+        to="/publish"
+        className="sidebar__button"
+      >
         Publicar
       </Link>
 
       <div className="sidebar__auth">
         <div className="sidebar__user">
-          <div className="sidebar__user-avatar">P</div>
+          <div className="sidebar__user-avatar">
+            {currentUser.fullName.charAt(0).toUpperCase()}
+          </div>
 
           <div className="sidebar__user-info">
             <strong>{currentUser.fullName}</strong>

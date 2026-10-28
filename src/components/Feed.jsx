@@ -1,76 +1,79 @@
-import { useState } from "react";
-import { useOutletContext, useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import Tweet from "./Tweet";
+import { getFeed } from "../services/api";
 import "../styles/Feed.css";
 
 function Feed() {
-  const { posts, setPosts, followingUsernames, setFollowingUsernames } =
-    useOutletContext();
+  useOutletContext();
 
-  const [usernameToFollow, setUsernameToFollow] = useState("");
-  const [followMessage, setFollowMessage] = useState("");
-  const navigate = useNavigate();
-  const [content, setContent] = useState("");
+  const [posts, setPosts] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const postsPerPage = 10;
-  const totalPages = Math.ceil(posts.length / postsPerPage);
-  const startIndex = (currentPage - 1) * postsPerPage;
-  const visiblePosts = posts.slice(startIndex, startIndex + postsPerPage);
 
-  function handlePublish() {
-    const trimmedContent = content.trim();
+  useEffect(() => {
+    async function loadFeed() {
+      setLoading(true);
+      setError("");
 
-    if (!trimmedContent || trimmedContent.length > 280) {
-      return;
+      try {
+        const data = await getFeed(currentPage, postsPerPage);
+
+        const formattedPosts = data.items.map((tweet) => ({
+          id: tweet.id,
+          author: tweet.author.username,
+          content: tweet.content,
+          likes: 0,
+          createdAt: tweet.createdAt,
+        }));
+
+        setPosts(formattedPosts);
+        setTotalPages(data.totalPages);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    const newPost = {
-      id: Date.now(),
-      author: "pablo_dev",
-      content: trimmedContent,
-      likes: 0,
-      createdAt: new Date().toISOString(),
-    };
+    loadFeed();
+  }, [currentPage]);
 
-    setPosts((currentPosts) => [newPost, ...currentPosts]);
-    setContent("");
-    setCurrentPage(1);
+  function handlePreviousPage() {
+    setCurrentPage((page) => page - 1);
   }
 
-  function handleFollow() {
-    const username = usernameToFollow.trim().replace(/^@/, "");
+  function handleNextPage() {
+    setCurrentPage((page) => page + 1);
+  }
 
-    if (!username) {
-      setFollowMessage("Escribe un nombre de usuario.");
-      return;
-    }
+  if (loading) {
+    return (
+      <main className="feed">
+        <header className="feed__header">
+          <h1>Inicio</h1>
+        </header>
 
-    if (username === "pablo_dev") {
-      setFollowMessage("No puedes seguirte a ti mismo.");
-      return;
-    }
+        <p>Cargando publicaciones...</p>
+      </main>
+    );
+  }
 
-    const userExists = posts.some((post) => post.author === username);
+  if (error) {
+    return (
+      <main className="feed">
+        <header className="feed__header">
+          <h1>Inicio</h1>
+        </header>
 
-    if (!userExists) {
-      setFollowMessage("No encontramos ese usuario.");
-      return;
-    }
-
-    if (followingUsernames.includes(username)) {
-      setFollowMessage("Ya sigues a ese usuario.");
-      return;
-    }
-
-    setFollowingUsernames((currentUsernames) => [
-      ...currentUsernames,
-      username,
-    ]);
-
-    setFollowMessage(`Ahora sigues a @${username}.`);
-    setUsernameToFollow("");
+        <p>{error}</p>
+      </main>
+    );
   }
 
   return (
@@ -79,51 +82,41 @@ function Feed() {
         <h1>Inicio</h1>
 
         <div className="feed__tabs">
-          <button className="feed__tab feed__tab--active" type="button">
+          <button
+            className="feed__tab feed__tab--active"
+            type="button"
+          >
             Para ti
           </button>
 
-          <button className="feed__tab" type="button">
+          <button
+            className="feed__tab"
+            type="button"
+          >
             Siguiendo
           </button>
         </div>
       </header>
 
-      <section className="composer">
-        <div className="composer__avatar">P</div>
-
-        <div className="composer__content">
-          <textarea
-            placeholder="¿Qué está pasando?"
-            aria-label="Escribe una publicación"
-            value={content}
-            maxLength={280}
-            onChange={(event) => setContent(event.target.value)}
+      {posts.length === 0 ? (
+        <p>No hay publicaciones para mostrar.</p>
+      ) : (
+        posts.map((post) => (
+          <Tweet
+            key={post.id}
+            post={post}
           />
-
-          <div className="composer__actions">
-            <span>{content.length}/280 caracteres</span>
-
-            <button
-              type="button"
-              onClick={handlePublish}
-              disabled={!content.trim()}
-            >
-              Publicar
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {visiblePosts.map((post) => (
-        <Tweet key={post.id} post={post} />
-      ))}
+        ))
+      )}
 
       {totalPages > 1 && (
-        <nav className="pagination" aria-label="Paginación de publicaciones">
+        <nav
+          className="pagination"
+          aria-label="Paginación de publicaciones"
+        >
           <button
             type="button"
-            onClick={() => setCurrentPage((page) => page - 1)}
+            onClick={handlePreviousPage}
             disabled={currentPage === 1}
           >
             Anterior
@@ -135,7 +128,7 @@ function Feed() {
 
           <button
             type="button"
-            onClick={() => setCurrentPage((page) => page + 1)}
+            onClick={handleNextPage}
             disabled={currentPage === totalPages}
           >
             Siguiente
