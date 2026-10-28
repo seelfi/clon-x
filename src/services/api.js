@@ -1,11 +1,13 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
+
+const API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
 async function request(endpoint, options = {}) {
   const token = localStorage.getItem('token')
 
   const headers = {
     'Content-Type': 'application/json',
-    ...options.headers
+    ...options.headers,
   }
 
   if (token) {
@@ -14,7 +16,7 @@ async function request(endpoint, options = {}) {
 
   const response = await fetch(`${API_URL}${endpoint}`, {
     ...options,
-    headers
+    headers,
   })
 
   const data = await response.json()
@@ -29,10 +31,7 @@ async function request(endpoint, options = {}) {
 export function login(username, password) {
   return request('/auth/login', {
     method: 'POST',
-    body: JSON.stringify({
-      username,
-      password
-    })
+    body: JSON.stringify({ username, password }),
   })
 }
 
@@ -43,8 +42,8 @@ export function register(fullName, username, email, password) {
       fullName,
       username,
       email,
-      password
-    })
+      password,
+    }),
   })
 }
 
@@ -55,14 +54,16 @@ export function getFeed(page = 1, size = 10) {
 export function createTweet(content) {
   return request('/tweets', {
     method: 'POST',
-    body: JSON.stringify({
-      content
-    })
+    body: JSON.stringify({ content }),
   })
 }
 
 export function getUserProfile(username) {
   return request(`/users/${encodeURIComponent(username)}`)
+}
+
+export function searchUsers(query) {
+  return request(`/users/search?q=${encodeURIComponent(query)}`)
 }
 
 export function followUser(username) {

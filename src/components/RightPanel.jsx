@@ -1,17 +1,15 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { followUser } from '../services/api'
 import '../styles/RightPanel.css'
 
-function RightPanel({
-  posts,
-  followingUsernames,
-  setFollowingUsernames
-}) {
+function RightPanel() {
   const navigate = useNavigate()
 
   const [username, setUsername] = useState('')
   const [message, setMessage] = useState('')
+  const [messageType, setMessageType] = useState('')
 
   const [searchTerm, setSearchTerm] = useState('')
   const [suggestions, setSuggestions] = useState([])
@@ -19,11 +17,20 @@ function RightPanel({
   const [searchError, setSearchError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
 
+  const currentUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    } catch {
+      return {}
+    }
+  })()
+
   useEffect(() => {
-    if (!message) return
+    if (!message) return undefined
 
     const timeoutId = setTimeout(() => {
       setMessage('')
+      setMessageType('')
     }, 3000)
 
     return () => clearTimeout(timeoutId)
@@ -60,8 +67,8 @@ function RightPanel({
           `${apiUrl}/users/search?q=${encodeURIComponent(query)}`,
           {
             headers: {
-              Authorization: `Bearer ${token}`
-            }
+              Authorization: `Bearer ${token}`,
+            },
           }
         )
 
@@ -99,48 +106,58 @@ function RightPanel({
     navigate(`/users/${encodeURIComponent(targetUsername)}`)
   }
 
-  function handleFollow(event) {
+  async function handleFollow(event) {
     event.preventDefault()
 
     const targetUsername = username.trim().replace(/^@/, '')
 
     if (!targetUsername) {
+      setMessageType('error')
       setMessage('Escribe un nombre de usuario.')
       return
     }
 
-    if (targetUsername.toLowerCase() === 'pablo_dev') {
+    if (
+      targetUsername.toLowerCase() ===
+      String(currentUser.username || '').toLowerCase()
+    ) {
+      setMessageType('error')
       setMessage('No puedes seguirte a ti mismo.')
       return
     }
 
-    const userExists = posts.some(
-      (post) =>
-        post.author.toLowerCase() === targetUsername.toLowerCase()
-    )
+    try {
+      await followUser(targetUsername)
 
-    if (!userExists) {
-      setMessage('No encontramos ese usuario.')
-      return
+      setMessageType('success')
+      setMessage(`Ahora sigues a @${targetUsername}.`)
+      setUsername('')
+    } catch (error) {
+      const errorMessage = error.message || ''
+
+      if (
+        errorMessage.toLowerCase().includes('already follow') ||
+        errorMessage.toLowerCase().includes('ya sigues')
+      ) {
+        setMessageType('error')
+        setMessage('Ya sigues a ese usuario.')
+      } else if (
+        errorMessage.toLowerCase().includes('user not found') ||
+        errorMessage.toLowerCase().includes('usuario no encontrado')
+      ) {
+        setMessageType('error')
+        setMessage('No encontramos ese usuario.')
+      } else if (
+        errorMessage.toLowerCase().includes('cannot follow yourself') ||
+        errorMessage.toLowerCase().includes('no puedes seguirte')
+      ) {
+        setMessageType('error')
+        setMessage('No puedes seguirte a ti mismo.')
+      } else {
+        setMessageType('error')
+        setMessage(errorMessage || 'No se pudo seguir al usuario.')
+      }
     }
-
-    const alreadyFollowing = followingUsernames.some(
-      (followedUsername) =>
-        followedUsername.toLowerCase() === targetUsername.toLowerCase()
-    )
-
-    if (alreadyFollowing) {
-      setMessage('Ya sigues a ese usuario.')
-      return
-    }
-
-    setFollowingUsernames((currentUsernames) => [
-      ...currentUsernames,
-      targetUsername
-    ])
-
-    setMessage(`Ahora sigues a @${targetUsername}.`)
-    setUsername('')
   }
 
   return (
@@ -191,7 +208,9 @@ function RightPanel({
                     className="search-results__avatar"
                     aria-hidden="true"
                   >
-                    {user.fullName.charAt(0).toUpperCase()}
+                    {(user.fullName || user.username || '?')
+                      .charAt(0)
+                      .toUpperCase()}
                   </span>
 
                   <span className="search-results__user">
@@ -221,6 +240,7 @@ function RightPanel({
             onChange={(event) => {
               setUsername(event.target.value)
               setMessage('')
+              setMessageType('')
             }}
           />
 
@@ -230,7 +250,11 @@ function RightPanel({
         </form>
 
         {message && (
-          <p className="follow-card__message" role="status">
+          <p
+            className="follow-card__message"
+            role="status"
+            data-type={messageType}
+          >
             {message}
           </p>
         )}
