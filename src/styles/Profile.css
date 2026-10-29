@@ -772,3 +772,48 @@
     padding: 12px 8px;
   }
 }
+
+
+.profile-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--app-border, #253140);
+}
+
+.profile-tab {
+  position: relative;
+  flex: 1;
+  padding: 15px 12px;
+  border: none;
+  background: transparent;
+  color: var(--app-muted, #8c9aab);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.profile-tab:hover {
+  background: rgb(255 255 255 / 3%);
+}
+
+.profile-tab.active {
+  color: var(--app-text, #e7edf5);
+  font-weight: 800;
+}
+
+.profile-tab.active::after {
+  position: absolute;
+  right: 20%;
+  bottom: 0;
+  left: 20%;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: var(--app-blue, #2997ff);
+  content: "";
+}
+
+.post__retweeted-label {
+  margin-bottom: 8px;
+  color: var(--app-muted, #8c9aab);
+  font-size: 12px;
+}

@@ -257,4 +257,115 @@ router.get('/:username/tweets', authMiddleware, async (req, res) => {
   }
 })
 
+/* Get a user's retweets with pagination */
+router.get('/:username/retweets', authMiddleware, async (req, res) => {
+  try {
+    const { username } = req.params;
+    const page = Number.parseInt(req.query.page, 10) || 1;
+    const size = Number.parseInt(req.query.size, 10) || 10;
+
+    if (page < 1 || size < 1 || size > 100) {
+      return res.status(400).json({
+        message: 'Invalid pagination parameters',
+      });
+    }
+
+    const [users] = await pool.execute(
+      'SELECT id FROM users WHERE username = ?',
+      [username]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        message: 'User not found',
+      });
+    }
+
+    const userId = users[0].id;
+    const offset = (page - 1) * size;
+
+    const [countResult] = await pool.execute(
+      'SELECT COUNT(*) AS totalItems FROM retweets WHERE user_id = ?',
+      [userId]
+    );
+
+    const totalItems = Number(countResult[0].totalItems);
+
+    const [tweets] = await pool.execute(
+      `SELECT
+         t.id,
+         t.content,
+         t.created_at,
+         u.id AS author_id,
+         u.full_name AS author_full_name,
+         u.username AS author_username,
+         r.created_at AS retweeted_at,
+
+         (SELECT COUNT(*)
+          FROM tweet_likes l
+          WHERE l.tweet_id = t.id) AS likesCount,
+
+         (SELECT COUNT(*)
+          FROM retweets r2
+          WHERE r2.tweet_id = t.id) AS retweetsCount,
+
+         (SELECT COUNT(*)
+          FROM comments c
+          WHERE c.tweet_id = t.id) AS commentsCount,
+
+         EXISTS(
+           SELECT 1
+           FROM tweet_likes l
+           WHERE l.tweet_id = t.id
+             AND l.user_id = ?
+         ) AS likedByMe,
+
+         EXISTS(
+           SELECT 1
+           FROM retweets r3
+           WHERE r3.tweet_id = t.id
+             AND r3.user_id = ?
+         ) AS retweetedByMe
+
+       FROM retweets r
+       INNER JOIN tweets t ON t.id = r.tweet_id
+       INNER JOIN users u ON u.id = t.author_id
+       WHERE r.user_id = ?
+       ORDER BY r.created_at DESC, r.id DESC
+       LIMIT ? OFFSET ?`,
+      [req.user.id, req.user.id, userId, size, offset]
+    );
+
+    return res.status(200).json({
+      items: tweets.map((tweet) => ({
+        id: tweet.id,
+        content: tweet.content,
+        createdAt: tweet.created_at,
+        retweetedAt: tweet.retweeted_at,
+        retweetedBy: username,
+        author: {
+          id: tweet.author_id,
+          fullName: tweet.author_full_name,
+          username: tweet.author_username,
+        },
+        likesCount: Number(tweet.likesCount),
+        retweetsCount: Number(tweet.retweetsCount),
+        commentsCount: Number(tweet.commentsCount),
+        likedByMe: Boolean(tweet.likedByMe),
+        retweetedByMe: Boolean(tweet.retweetedByMe),
+      })),
+      page,
+      size,
+      totalItems,
+      totalPages: Math.ceil(totalItems / size),
+    });
+  } catch (error) {
+    console.error('Error getting user retweets:', error);
+
+    return res.status(500).json({
+      message: 'Internal server error',
+    });
+  }
+});
+
 module.exports = router

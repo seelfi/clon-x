@@ -1,26 +1,36 @@
+
 import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+
 import {
   getUserProfile,
   followUser,
   unfollowUser,
   updateBio,
 } from "../services/api";
+
 import Tweet from "../components/Tweet";
 import "../styles/Profile.css";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000/api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 function Profile() {
   const { username } = useParams();
 
   const [user, setUser] = useState(null);
   const [tweets, setTweets] = useState([]);
+  const [retweets, setRetweets] = useState([]);
+
+  const [activeTab, setActiveTab] = useState("posts");
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [isFollowing, setIsFollowing] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
   const [followError, setFollowError] = useState("");
+
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioDraft, setBioDraft] = useState("");
   const [bioLoading, setBioLoading] = useState(false);
@@ -47,45 +57,65 @@ function Profile() {
       setBioError("");
       setBioSuccess("");
       setIsEditingBio(false);
+      setActiveTab("posts");
 
       try {
-        const [profileData, tweetsResponse] = await Promise.all([
-          getUserProfile(username),
-          fetch(
-            `${API_URL}/users/${encodeURIComponent(username)}/tweets?page=1&size=10`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            },
-          ),
-        ]);
+        const token = localStorage.getItem("token");
+
+        const requestOptions = {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        };
+
+        const [profileData, tweetsResponse, retweetsResponse] =
+          await Promise.all([
+            getUserProfile(username),
+
+            fetch(
+              `${API_URL}/users/${encodeURIComponent(username)}/tweets?page=1&size=10`,
+              requestOptions
+            ),
+
+            fetch(
+              `${API_URL}/users/${encodeURIComponent(username)}/retweets?page=1&size=10`,
+              requestOptions
+            ),
+          ]);
 
         const tweetsData = await tweetsResponse.json();
+        const retweetsData = await retweetsResponse.json();
 
         if (!tweetsResponse.ok) {
-          throw new Error(tweetsData.message || "Error loading user posts");
+          throw new Error(
+            tweetsData.message || "Error loading user posts"
+          );
+        }
+
+        if (!retweetsResponse.ok) {
+          throw new Error(
+            retweetsData.message || "Error loading user retweets"
+          );
         }
 
         let followingStatus = false;
+
         const storedUser = localStorage.getItem("user");
-        const currentUser = storedUser ? JSON.parse(storedUser) : null;
+        const currentUser = storedUser
+          ? JSON.parse(storedUser)
+          : null;
 
         if (currentUser?.username !== profileData.username) {
           const statusResponse = await fetch(
             `${API_URL}/follows/${encodeURIComponent(username)}/status`,
-            {
-              headers: {
-                Authorization: `Bearer ${localStorage.getItem("token")}`,
-              },
-            },
+            requestOptions
           );
 
           const statusData = await statusResponse.json();
 
           if (!statusResponse.ok) {
             throw new Error(
-              statusData.message || "Error checking follow status",
+              statusData.message || "Error checking follow status"
             );
           }
 
@@ -94,15 +124,17 @@ function Profile() {
 
         if (!cancelled) {
           setUser(profileData);
-          setTweets(tweetsData.items);
+          setTweets(tweetsData.items || []);
+          setRetweets(retweetsData.items || []);
           setIsFollowing(followingStatus);
           setBioDraft(profileData.bio || "");
         }
       } catch (error) {
         if (!cancelled) {
-          setError(error.message);
+          setError(error.message || "Error loading profile");
           setUser(null);
           setTweets([]);
+          setRetweets([]);
         }
       } finally {
         if (!cancelled) {
@@ -131,7 +163,10 @@ function Profile() {
 
         setUser((currentUser) => ({
           ...currentUser,
-          followersCount: Math.max(0, Number(currentUser.followersCount) - 1),
+          followersCount: Math.max(
+            0,
+            Number(currentUser.followersCount) - 1
+          ),
         }));
       } else {
         await followUser(user.username);
@@ -139,7 +174,8 @@ function Profile() {
 
         setUser((currentUser) => ({
           ...currentUser,
-          followersCount: Number(currentUser.followersCount) + 1,
+          followersCount:
+            Number(currentUser.followersCount) + 1,
         }));
       }
     } catch (error) {
@@ -215,8 +251,14 @@ function Profile() {
   }
 
   const storedUser = localStorage.getItem("user");
-  const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  const currentUser = storedUser
+    ? JSON.parse(storedUser)
+    : null;
+
   const isOwnProfile = currentUser?.username === user.username;
+
+  const displayedItems =
+    activeTab === "posts" ? tweets : retweets;
 
   return (
     <main className="profile-page">
@@ -228,8 +270,14 @@ function Profile() {
         <div className="profile-header-title">
           <h1>{user.fullName}</h1>
           <p>
-            {tweets.length}{" "}
-            {tweets.length === 1 ? "publicación" : "publicaciones"}
+            {displayedItems.length}{" "}
+            {activeTab === "posts"
+              ? displayedItems.length === 1
+                ? "publicación"
+                : "publicaciones"
+              : displayedItems.length === 1
+                ? "republicación"
+                : "republicaciones"}
           </p>
         </div>
       </header>
@@ -281,7 +329,10 @@ function Profile() {
         </div>
 
         {isEditingBio ? (
-          <form className="profile-bio-form" onSubmit={handleSaveBio}>
+          <form
+            className="profile-bio-form"
+            onSubmit={handleSaveBio}
+          >
             <label htmlFor="profileBio">Biografía</label>
 
             <textarea
@@ -299,7 +350,9 @@ function Profile() {
               {bioDraft.length}/160 caracteres
             </p>
 
-            {bioError && <p className="profile-error">{bioError}</p>}
+            {bioError && (
+              <p className="profile-error">{bioError}</p>
+            )}
 
             <div className="profile-bio-actions">
               <button type="submit" disabled={bioLoading}>
@@ -329,44 +382,73 @@ function Profile() {
           </>
         )}
 
-        {followError && <p className="profile-error">{followError}</p>}
+        {followError && (
+          <p className="profile-error">{followError}</p>
+        )}
 
         <div className="profile-stats">
-          <Link to={`/users/${encodeURIComponent(user.username)}/following`}>
+          <Link
+            to={`/users/${encodeURIComponent(user.username)}/following`}
+          >
             <strong>{user.followingCount}</strong>
             <span>Siguiendo</span>
           </Link>
 
-          <Link to={`/users/${encodeURIComponent(user.username)}/followers`}>
+          <Link
+            to={`/users/${encodeURIComponent(user.username)}/followers`}
+          >
             <strong>{user.followersCount}</strong>
             <span>Seguidores</span>
           </Link>
         </div>
       </section>
 
-      <nav className="profile-tabs" aria-label="Publicaciones del perfil">
-        <div className="profile-tab active">Publicaciones</div>
+      <nav
+        className="profile-tabs"
+        aria-label="Publicaciones del perfil"
+      >
+        <button
+          type="button"
+          className={`profile-tab ${
+            activeTab === "posts" ? "active" : ""
+          }`}
+          onClick={() => setActiveTab("posts")}
+        >
+          Publicaciones
+        </button>
+
+        <button
+          type="button"
+          className={`profile-tab ${
+            activeTab === "retweets" ? "active" : ""
+          }`}
+          onClick={() => setActiveTab("retweets")}
+        >
+          Republicaciones
+        </button>
       </nav>
 
       <section className="profile-tweets">
-        {tweets.length > 0 ? (
-          tweets.map((tweet) => (
+        {displayedItems.length > 0 ? (
+          displayedItems.map((tweet) => (
             <Tweet
               key={tweet.id}
               post={{
-                id: tweet.id,
-                author: tweet.author.username,
+                ...tweet,
                 authorName: tweet.author.fullName,
                 authorUsername: tweet.author.username,
-                content: tweet.content,
-                likes: 0,
-                createdAt: tweet.createdAt,
+                retweetedBy:
+                  activeTab === "retweets"
+                    ? user.username
+                    : undefined,
               }}
             />
           ))
         ) : (
           <p className="empty-state">
-            Este usuario todavía no tiene publicaciones.
+            {activeTab === "posts"
+              ? "Este usuario todavía no tiene publicaciones."
+              : "Este usuario todavía no tiene republicaciones."}
           </p>
         )}
       </section>

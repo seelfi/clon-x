@@ -86,3 +86,28 @@ export function updateBio(bio) {
     body: JSON.stringify({ bio }),
   })
 }
+
+
+export function toggleLike(tweetId) {
+  return request(`/tweets/${tweetId}/like`, {
+    method: 'POST',
+  })
+}
+
+export function toggleRetweet(tweetId) {
+  return request(`/tweets/${tweetId}/retweet`, {
+    method: 'POST',
+  })
+}
+
+export function getComments(tweetId) {
+  return request(`/tweets/${tweetId}/comments`)
+}
+
+export function createComment(tweetId, content) {
+  return request(`/tweets/${tweetId}/comments`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })
+}
+

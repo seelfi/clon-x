@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import Tweet from "./Tweet";
 import { getFeed } from "../services/api";
@@ -27,8 +26,13 @@ function Feed() {
           authorName: tweet.author.fullName,
           authorUsername: tweet.author.username,
           content: tweet.content,
-          likes: 0,
           createdAt: tweet.createdAt,
+
+          likesCount: tweet.likesCount,
+          retweetsCount: tweet.retweetsCount,
+          commentsCount: tweet.commentsCount,
+          likedByMe: tweet.likedByMe,
+          retweetedByMe: tweet.retweetedByMe,
         }));
 
         setPosts(formattedPosts);
@@ -93,10 +97,7 @@ function Feed() {
         <h1>Inicio</h1>
 
         <div className="feed__tabs">
-          <button
-            className="feed__tab feed__tab--active"
-            type="button"
-          >
+          <button className="feed__tab feed__tab--active" type="button">
             Para ti
           </button>
 
@@ -113,8 +114,8 @@ function Feed() {
           </div>
           <h2>Tu próxima conversación empieza aquí</h2>
           <p>
-            Todavía no hay publicaciones para mostrar. Puedes compartir
-            una idea o seguir a otras personas para descubrir contenido.
+            Todavía no hay publicaciones para mostrar. Puedes compartir una idea
+            o seguir a otras personas para descubrir contenido.
           </p>
         </div>
       ) : (
@@ -122,10 +123,7 @@ function Feed() {
       )}
 
       {totalPages > 1 && (
-        <nav
-          className="pagination"
-          aria-label="Paginación de publicaciones"
-        >
+        <nav className="pagination" aria-label="Paginación de publicaciones">
           <button
             type="button"
             onClick={handlePreviousPage}
