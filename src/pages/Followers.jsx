@@ -1,6 +1,6 @@
 
 import { useCallback, useEffect, useState } from "react";
-import { Link, useOutletContext, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../services/api";
 import "../styles/Profile.css";
 
@@ -9,9 +9,8 @@ const API_URL =
 
 function Followers() {
   const { username } = useParams();
-  const { followingUsernames, setFollowingUsernames } =
-    useOutletContext();
 
+  const [followingUsernames, setFollowingUsernames] = useState([]);
   const [pageSelection, setPageSelection] = useState({
     username: null,
     page: 1,
@@ -85,20 +84,53 @@ function Followers() {
           throw new Error(data.message || "No se pudieron cargar los seguidores.");
         }
 
+        const items = data.items || [];
+        const followedUsernames = await Promise.all(
+          items.map(async (user) => {
+            const statusResponse = await fetch(
+              `${API_URL}/follows/${encodeURIComponent(user.username)}/status`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+
+            const statusData = await statusResponse.json();
+
+            if (!statusResponse.ok) {
+              throw new Error(
+                statusData.message || "No se pudo consultar el seguimiento."
+              );
+            }
+
+            return statusData.isFollowing ? user.username : null;
+          })
+        );
+
         if (!cancelled) {
           setListData({
             username,
             page: currentPage,
-            items: data.items || [],
+            items,
             totalItems: data.totalItems || 0,
             totalPages: data.totalPages || 0,
           });
+          setFollowingUsernames(followedUsernames.filter(Boolean));
 
           const lastPage = Math.max(1, data.totalPages || 0);
           if (currentPage > lastPage) setCurrentPage(lastPage);
         }
       } catch (err) {
         if (!cancelled) {
+          setListData({
+            username: null,
+            page: 0,
+            items: [],
+            totalItems: 0,
+            totalPages: 0,
+          });
+          setFollowingUsernames([]);
           setError(err.message || "Ocurrió un error al cargar los seguidores.");
         }
       } finally {
