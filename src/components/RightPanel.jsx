@@ -254,29 +254,22 @@ function RightPanel() {
       </section>
 
       <section className="panel-card">
-        <h2>¿Qué está pasando?</h2>
+        <h2>Temas de ejemplo</h2>
 
         <div className="trend">
-          <span>Tendencias · Colombia</span>
+          <span>Colombia</span>
           <strong>#DesarrolloWeb</strong>
-          <small>1.250 publicaciones</small>
         </div>
 
         <div className="trend">
-          <span>Tendencias · Tecnología</span>
+          <span>Tecnología</span>
           <strong>React</strong>
-          <small>850 publicaciones</small>
         </div>
 
         <div className="trend">
-          <span>Tendencias · Programación</span>
+          <span>Programación</span>
           <strong>#JavaScript</strong>
-          <small>620 publicaciones</small>
         </div>
-
-        <button className="show-more" type="button">
-          Mostrar más
-        </button>
       </section>
     </aside>
   )

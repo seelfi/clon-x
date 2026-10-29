@@ -50,6 +50,19 @@ function getRelativeTime(date) {
   return publishedAt.toLocaleDateString("es-CO");
 }
 
+function formatDateTime(date) {
+  const publishedAt = new Date(date);
+
+  if (Number.isNaN(publishedAt.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("es-CO", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(publishedAt);
+}
+
 function Tweet({ post }) {
   const authorName =
     post.authorName || post.author?.fullName || post.author || "Usuario";
@@ -200,7 +213,7 @@ function Tweet({ post }) {
                   @{authorUsername}
                 </Link>
                 {" · "}
-                {getRelativeTime(post.createdAt)}
+                {formatDateTime(post.createdAt)}
               </span>
             </div>
 

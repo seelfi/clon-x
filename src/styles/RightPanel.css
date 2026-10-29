@@ -1,10 +1,16 @@
 
 /* Right sidebar */
 .right-panel {
+  position: sticky;
+  top: 0;
   align-self: start;
   width: 100%;
   min-width: 0;
+  max-height: 100vh;
   padding: 18px 0 24px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #34465a transparent;
   color: var(--app-text, #e7edf5);
 }
 
@@ -183,11 +189,6 @@
   font-size: 13px;
   font-weight: 750;
   overflow-wrap: anywhere;
-}
-
-.trend small {
-  color: #77899d;
-  font-size: 10px;
 }
 
 /* More button */

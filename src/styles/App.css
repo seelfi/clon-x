@@ -265,33 +265,12 @@ a {
   color: #fff;
 }
 
-/* Right sidebar */
-.right-panel {
-  position: sticky;
-  top: 0;
-  align-self: start;
-  width: 100%;
-  max-height: 100vh;
-  padding: 18px 0 24px;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #34465a transparent;
-}
-
-.right-panel > * {
-  margin-bottom: 18px;
-}
-
 /* Medium screens */
 @media (max-width: 1250px) {
   .layout {
     grid-template-columns: 220px minmax(0, 680px);
     gap: 20px;
     padding: 0 20px;
-  }
-
-  .right-panel {
-    display: none;
   }
 }
 
