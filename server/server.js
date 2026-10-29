@@ -1,10 +1,19 @@
+require('./loadEnv')
+
 const express = require('express')
 const cors = require('cors')
 
 const app = express()
 const PORT = 3000
+const allowedOrigin =
+  process.env.CORS_ORIGIN?.trim() || 'http://localhost:5173'
 
-app.use(cors())
+app.use(
+  cors({
+    origin: (origin, callback) =>
+      callback(null, origin === allowedOrigin ? origin : false),
+  })
+)
 app.use(express.json())
 
 const authRoutes = require('./routes/auth')

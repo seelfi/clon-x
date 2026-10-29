@@ -1,5 +1,5 @@
 
-require('dotenv').config();
+require('./loadEnv')
 
 const mysql = require('mysql2/promise');
 
