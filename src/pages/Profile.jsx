@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 
 import {
   getUserProfile,
+  getUserTweets,
+  getUserRetweets,
+  getFollowStatus,
   followUser,
   unfollowUser,
   updateBio,
@@ -11,9 +14,6 @@ import {
 
 import Tweet from "../components/Tweet";
 import "../styles/Profile.css";
-
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 function Profile() {
   const { username } = useParams();
@@ -60,43 +60,12 @@ function Profile() {
       setActiveTab("posts");
 
       try {
-        const token = localStorage.getItem("token");
-
-        const requestOptions = {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        };
-
-        const [profileData, tweetsResponse, retweetsResponse] =
+        const [profileData, tweetsData, retweetsData] =
           await Promise.all([
             getUserProfile(username),
-
-            fetch(
-              `${API_URL}/users/${encodeURIComponent(username)}/tweets?page=1&size=10`,
-              requestOptions
-            ),
-
-            fetch(
-              `${API_URL}/users/${encodeURIComponent(username)}/retweets?page=1&size=10`,
-              requestOptions
-            ),
+            getUserTweets(username, 1, 10),
+            getUserRetweets(username, 1, 10),
           ]);
-
-        const tweetsData = await tweetsResponse.json();
-        const retweetsData = await retweetsResponse.json();
-
-        if (!tweetsResponse.ok) {
-          throw new Error(
-            tweetsData.message || "Error loading user posts"
-          );
-        }
-
-        if (!retweetsResponse.ok) {
-          throw new Error(
-            retweetsData.message || "Error loading user retweets"
-          );
-        }
 
         let followingStatus = false;
 
@@ -106,18 +75,10 @@ function Profile() {
           : null;
 
         if (currentUser?.username !== profileData.username) {
-          const statusResponse = await fetch(
-            `${API_URL}/follows/${encodeURIComponent(username)}/status`,
-            requestOptions
+          const statusData = await getFollowStatus(
+            username,
+            "Error checking follow status"
           );
-
-          const statusData = await statusResponse.json();
-
-          if (!statusResponse.ok) {
-            throw new Error(
-              statusData.message || "Error checking follow status"
-            );
-          }
 
           followingStatus = statusData.isFollowing;
         }

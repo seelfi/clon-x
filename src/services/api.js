@@ -70,6 +70,22 @@ export function getUserProfile(username) {
   return request(`/users/${encodeURIComponent(username)}`)
 }
 
+export function getUserTweets(username, page = 1, size = 10) {
+  return request(
+    `/users/${encodeURIComponent(username)}/tweets?page=${page}&size=${size}`,
+    {},
+    'Error loading user posts'
+  )
+}
+
+export function getUserRetweets(username, page = 1, size = 10) {
+  return request(
+    `/users/${encodeURIComponent(username)}/retweets?page=${page}&size=${size}`,
+    {},
+    'Error loading user retweets'
+  )
+}
+
 export function getFollowers(username, page = 1, size = 10) {
   return request(
     `/users/${encodeURIComponent(username)}/followers?page=${page}&size=${size}`,
@@ -86,11 +102,14 @@ export function getFollowing(username, page = 1, size = 10) {
   )
 }
 
-export function getFollowStatus(username) {
+export function getFollowStatus(
+  username,
+  fallbackMessage = 'No se pudo consultar el seguimiento.'
+) {
   return request(
     `/follows/${encodeURIComponent(username)}/status`,
     {},
-    'No se pudo consultar el seguimiento.'
+    fallbackMessage
   )
 }
 
