@@ -2,7 +2,11 @@
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
-async function request(endpoint, options = {}) {
+async function request(
+  endpoint,
+  options = {},
+  fallbackMessage = 'Error en la solicitud'
+) {
   const token = localStorage.getItem('token')
 
   const headers = {
@@ -22,7 +26,7 @@ async function request(endpoint, options = {}) {
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data.message || 'Error en la solicitud')
+    throw new Error(data.message || fallbackMessage)
   }
 
   return data
@@ -64,6 +68,30 @@ export function createTweet(content) {
 
 export function getUserProfile(username) {
   return request(`/users/${encodeURIComponent(username)}`)
+}
+
+export function getFollowers(username, page = 1, size = 10) {
+  return request(
+    `/users/${encodeURIComponent(username)}/followers?page=${page}&size=${size}`,
+    {},
+    'No se pudieron cargar los seguidores.'
+  )
+}
+
+export function getFollowing(username, page = 1, size = 10) {
+  return request(
+    `/users/${encodeURIComponent(username)}/following?page=${page}&size=${size}`,
+    {},
+    'No se pudo cargar la lista de seguidos.'
+  )
+}
+
+export function getFollowStatus(username) {
+  return request(
+    `/follows/${encodeURIComponent(username)}/status`,
+    {},
+    'No se pudo consultar el seguimiento.'
+  )
 }
 
 export function searchUsers(query) {

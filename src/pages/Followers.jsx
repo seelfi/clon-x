@@ -1,11 +1,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { followUser, unfollowUser } from "../services/api";
+import {
+  followUser,
+  getFollowers,
+  getFollowStatus,
+  unfollowUser,
+} from "../services/api";
 import "../styles/Profile.css";
-
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 function Followers() {
   const { username } = useParams();
@@ -69,40 +71,12 @@ function Followers() {
           throw new Error("Debes iniciar sesión para ver esta lista.");
         }
 
-        const response = await fetch(
-          `${API_URL}/users/${encodeURIComponent(username)}/followers?page=${currentPage}&size=${usersPerPage}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "No se pudieron cargar los seguidores.");
-        }
+        const data = await getFollowers(username, currentPage, usersPerPage);
 
         const items = data.items || [];
         const followedUsernames = await Promise.all(
           items.map(async (user) => {
-            const statusResponse = await fetch(
-              `${API_URL}/follows/${encodeURIComponent(user.username)}/status`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                },
-              }
-            );
-
-            const statusData = await statusResponse.json();
-
-            if (!statusResponse.ok) {
-              throw new Error(
-                statusData.message || "No se pudo consultar el seguimiento."
-              );
-            }
+            const statusData = await getFollowStatus(user.username);
 
             return statusData.isFollowing ? user.username : null;
           })

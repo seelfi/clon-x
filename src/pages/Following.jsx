@@ -1,11 +1,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { followUser, unfollowUser } from "../services/api";
+import {
+  followUser,
+  getFollowStatus,
+  getFollowing,
+  unfollowUser,
+} from "../services/api";
 import "../styles/Profile.css";
-
-const API_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 const UNFOLLOW_DELAY = 5;
 
@@ -79,51 +81,6 @@ function Following() {
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchFollowing(
-      targetUsername,
-      token,
-      page = 1,
-      size = usersPerPage
-    ) {
-      const response = await fetch(
-        `${API_URL}/users/${encodeURIComponent(targetUsername)}/following?page=${page}&size=${size}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "No se pudo cargar la lista de seguidos."
-        );
-      }
-
-      return data;
-    }
-
-    async function fetchFollowStatus(targetUsername, token) {
-      const response = await fetch(
-        `${API_URL}/follows/${encodeURIComponent(targetUsername)}/status`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "No se pudo consultar el seguimiento.");
-      }
-
-      return data.isFollowing;
-    }
-
     async function loadFollowing() {
       setLoading(true);
       setError("");
@@ -143,9 +100,8 @@ function Following() {
           );
         }
 
-        const profileFollowing = await fetchFollowing(
+        const profileFollowing = await getFollowing(
           username,
-          token,
           currentPage,
           usersPerPage
         );
@@ -158,7 +114,7 @@ function Following() {
           : (
               await Promise.all(
                 profileItems.map(async (user) =>
-                  (await fetchFollowStatus(user.username, token))
+                  (await getFollowStatus(user.username)).isFollowing
                     ? user.username
                     : null
                 )

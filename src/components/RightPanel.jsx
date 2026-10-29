@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { followUser } from '../services/api'
+import { followUser, searchUsers } from '../services/api'
 import '../styles/RightPanel.css'
 
 function RightPanel() {
@@ -63,23 +63,7 @@ function RightPanel() {
           throw new Error('Inicia sesión para buscar usuarios.')
         }
 
-        const apiUrl =
-          import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
-
-        const response = await fetch(
-          `${apiUrl}/users/search?q=${encodeURIComponent(query)}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        )
-
-        const data = await response.json()
-
-        if (!response.ok) {
-          throw new Error(data.message || 'No se pudo buscar usuarios.')
-        }
+        const data = await searchUsers(query)
 
         if (!cancelled) {
           setSuggestions(data.items || [])
@@ -87,7 +71,11 @@ function RightPanel() {
       } catch (error) {
         if (!cancelled) {
           setSuggestions([])
-          setSearchError(error.message || 'Error al buscar usuarios.')
+          setSearchError(
+            error.message === 'Error en la solicitud'
+              ? 'No se pudo buscar usuarios.'
+              : error.message || 'Error al buscar usuarios.'
+          )
         }
       } finally {
         if (!cancelled) {
