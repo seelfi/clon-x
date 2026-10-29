@@ -110,21 +110,21 @@ Permite dejar de seguir al usuario indicado en la URL.
 
 **Posibles errores:** `401 Unauthorized`, `404 Not Found`.
 
-### GET `/users/:username/followers?page=1&limit=10`
+### GET `/users/:username/followers?page=1&size=10`
 
 Obtiene la lista paginada de seguidores de un usuario.
 
 **Orden:** alfabético por nombre completo.
 
-**Respuesta exitosa:** `200 OK`.
+**Respuesta exitosa:** `200 OK`, con `items`, `page`, `size`, `totalItems` y `totalPages`.
 
-### GET `/users/:username/following?page=1&limit=10`
+### GET `/users/:username/following?page=1&size=10`
 
 Obtiene la lista paginada de usuarios que sigue una persona.
 
 **Orden:** alfabético por nombre completo.
 
-**Respuesta exitosa:** `200 OK`.
+**Respuesta exitosa:** `200 OK`, con `items`, `page`, `size`, `totalItems` y `totalPages`.
 
 ## 4. Estado de implementación
 
@@ -132,4 +132,4 @@ Este documento describe el contrato previsto para la API del proyecto Clon de X.
 
 Las rutas y los comportamientos descritos son una especificación de diseño. No se consideran implementados hasta que se desarrollen y se prueben en el servidor Express.
 
-El servidor actual conserva sus rutas iniciales `/api/posts`. Las rutas documentadas en este archivo deberán implementarse y validarse progresivamente.
+
