@@ -10,9 +10,21 @@ const router = express.Router()
 router.get('/me', authMiddleware, async (req, res) => {
   try {
     const [users] = await pool.execute(
-      `SELECT id, full_name, username, email, bio, created_at
-       FROM users
-       WHERE id = ?`,
+      `SELECT
+         u.id,
+         u.full_name,
+         u.username,
+         u.email,
+         u.bio,
+         u.created_at,
+         (SELECT COUNT(*)
+          FROM follows f
+          WHERE f.followed_id = u.id) AS followersCount,
+         (SELECT COUNT(*)
+          FROM follows f
+          WHERE f.follower_id = u.id) AS followingCount
+       FROM users u
+       WHERE u.id = ?`,
       [req.user.id]
     )
 
@@ -31,6 +43,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       email: user.email,
       bio: user.bio,
       createdAt: user.created_at,
+      followersCount: user.followersCount,
+      followingCount: user.followingCount,
     })
   } catch (error) {
     console.error('Error getting user profile:', error)
@@ -157,10 +171,16 @@ router.get('/:username', authMiddleware, async (req, res) => {
           WHERE f.followed_id = u.id) AS followersCount,
          (SELECT COUNT(*)
           FROM follows f
-          WHERE f.follower_id = u.id) AS followingCount
+          WHERE f.follower_id = u.id) AS followingCount,
+         EXISTS (
+           SELECT 1
+           FROM follows f
+           WHERE f.follower_id = ?
+             AND f.followed_id = u.id
+         ) AS isFollowing
        FROM users u
        WHERE u.username = ?`,
-      [username]
+      [req.user.id, username]
     )
 
     if (users.length === 0) {
@@ -179,6 +199,7 @@ router.get('/:username', authMiddleware, async (req, res) => {
       createdAt: user.created_at,
       followersCount: user.followersCount,
       followingCount: user.followingCount,
+      isFollowing: Boolean(user.isFollowing),
     })
   } catch (error) {
     console.error('Error getting public profile:', error)
