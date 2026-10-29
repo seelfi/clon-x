@@ -1,27 +1,60 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../services/api";
 import "../styles/Profile.css";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:3000/api";
 
 function Followers() {
   const { username } = useParams();
   const { followingUsernames, setFollowingUsernames } =
     useOutletContext();
 
-  const [users, setUsers] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSelection, setPageSelection] = useState({
+    username: null,
+    page: 1,
+  });
+  const [listData, setListData] = useState({
+    username: null,
+    page: 0,
+    items: [],
+    totalItems: 0,
+    totalPages: 0,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processingUser, setProcessingUser] = useState(null);
 
-  const usersPerPage = 10;
-  const totalPages = Math.max(1, Math.ceil(users.length / usersPerPage));
+  const currentPage =
+    pageSelection.username === username ? pageSelection.page : 1;
 
-  const visibleUsers = users.slice(
-    (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
+  const setCurrentPage = useCallback(
+    (nextPage) => {
+      setPageSelection((current) => {
+        const page = current.username === username ? current.page : 1;
+
+        return {
+          username,
+          page:
+            typeof nextPage === "function" ? nextPage(page) : nextPage,
+        };
+      });
+    },
+    [username]
   );
+
+  const hasCurrentPage =
+    listData.username === username && listData.page === currentPage;
+  const isCurrentProfile = listData.username === username;
+  const users = hasCurrentPage ? listData.items : [];
+  const totalItems = isCurrentProfile ? listData.totalItems : 0;
+  const totalPages = isCurrentProfile ? listData.totalPages : 0;
+  const isLoading = loading || (!error && !hasCurrentPage);
+
+  const usersPerPage = 10;
+  const displayTotalPages = Math.max(1, totalPages);
 
   useEffect(() => {
     let cancelled = false;
@@ -38,7 +71,7 @@ function Followers() {
         }
 
         const response = await fetch(
-          `${import.meta.env.VITE_API_URL}/follows/${encodeURIComponent(username)}/followers`,
+          `${API_URL}/users/${encodeURIComponent(username)}/followers?page=${currentPage}&size=${usersPerPage}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -53,11 +86,16 @@ function Followers() {
         }
 
         if (!cancelled) {
-          const sortedUsers = (data.items || []).sort((a, b) =>
-            a.fullName.localeCompare(b.fullName, "es")
-          );
+          setListData({
+            username,
+            page: currentPage,
+            items: data.items || [],
+            totalItems: data.totalItems || 0,
+            totalPages: data.totalPages || 0,
+          });
 
-          setUsers(sortedUsers);
+          const lastPage = Math.max(1, data.totalPages || 0);
+          if (currentPage > lastPage) setCurrentPage(lastPage);
         }
       } catch (err) {
         if (!cancelled) {
@@ -75,7 +113,7 @@ function Followers() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, currentPage, setCurrentPage]);
 
   async function handleFollow(targetUsername) {
     if (processingUser) return;
@@ -106,10 +144,6 @@ function Followers() {
     }
   }
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [username]);
-
   return (
     <main className="follow-list-page">
       <header className="follow-list-header">
@@ -123,17 +157,17 @@ function Followers() {
         </div>
 
         <p className="follow-list-count">
-          {loading ? "Cargando..." : `${users.length} seguidores`}
+          {isLoading ? "Cargando..." : `${totalItems} seguidores`}
         </p>
       </header>
 
       {error && <p role="alert">{error}</p>}
 
       <section className="follow-list">
-        {loading ? (
+        {isLoading ? (
           <p>Cargando seguidores...</p>
         ) : users.length > 0 ? (
-          visibleUsers.map((user) => {
+          users.map((user) => {
             const isFollowing = followingUsernames.includes(user.username);
 
             return (
@@ -192,7 +226,7 @@ function Followers() {
       </section>
 
       <footer className="follow-list-footer">
-        {totalPages > 1 ? (
+        {displayTotalPages > 1 ? (
           <nav className="pagination" aria-label="Paginación de usuarios">
             <button
               type="button"
@@ -203,19 +237,21 @@ function Followers() {
             </button>
 
             <span>
-              Página {currentPage} de {totalPages}
+              Página {currentPage} de {displayTotalPages}
             </span>
 
             <button
               type="button"
-              onClick={() => setCurrentPage((page) => page + 1)}
-              disabled={currentPage === totalPages}
+              onClick={() =>
+                setCurrentPage((page) => Math.min(displayTotalPages, page + 1))
+              }
+              disabled={currentPage === displayTotalPages}
             >
               Siguiente
             </button>
           </nav>
         ) : (
-          <p>Página {currentPage} de {totalPages}</p>
+          <p>Página {currentPage} de {displayTotalPages}</p>
         )}
       </footer>
     </main>

@@ -2,6 +2,7 @@
 const express = require('express')
 const pool = require('../db')
 const authMiddleware = require('../middleware/authMiddleware')
+const { getFollowers, getFollowing } = require('../controllers/followLists')
 
 const router = express.Router()
 
@@ -133,90 +134,10 @@ router.delete('/', authMiddleware, async (req, res) => {
 })
 
 // Get a user's followers
-router.get('/:username/followers', authMiddleware, async (req, res) => {
-  try {
-    const { username } = req.params
-
-    const [users] = await pool.execute(
-      'SELECT id FROM users WHERE username = ?',
-      [username]
-    )
-
-    if (users.length === 0) {
-      return res.status(404).json({
-        message: 'User not found',
-      })
-    }
-
-    const userId = users[0].id
-
-    const [followers] = await pool.execute(
-      `SELECT
-         u.id,
-         u.full_name AS fullName,
-         u.username
-       FROM follows f
-       INNER JOIN users u ON u.id = f.follower_id
-       WHERE f.followed_id = ?
-       ORDER BY u.username ASC`,
-      [userId]
-    )
-
-    return res.status(200).json({
-      items: followers,
-      totalItems: followers.length,
-    })
-  } catch (error) {
-    console.error('Error getting followers:', error)
-
-    return res.status(500).json({
-      message: 'Internal server error',
-    })
-  }
-})
+router.get('/:username/followers', authMiddleware, getFollowers)
 
 // Get users followed by a user
-router.get('/:username/following', authMiddleware, async (req, res) => {
-  try {
-    const { username } = req.params
-
-    const [users] = await pool.execute(
-      'SELECT id FROM users WHERE username = ?',
-      [username]
-    )
-
-    if (users.length === 0) {
-      return res.status(404).json({
-        message: 'User not found',
-      })
-    }
-
-    const userId = users[0].id
-
-    const [following] = await pool.execute(
-      `SELECT
-         u.id,
-         u.full_name AS fullName,
-         u.username
-       FROM follows f
-       INNER JOIN users u ON u.id = f.followed_id
-       WHERE f.follower_id = ?
-       ORDER BY u.username ASC`,
-      [userId]
-    )
-
-    return res.status(200).json({
-      items: following,
-      totalItems: following.length,
-    })
-  } catch (error) {
-    console.error('Error getting following:', error)
-
-    return res.status(500).json({
-      message: 'Internal server error',
-    })
-  }
-})
+router.get('/:username/following', authMiddleware, getFollowing)
 
 // Check whether the authenticated user follows a user
 router.get('/:username/status', authMiddleware, async (req, res) => {

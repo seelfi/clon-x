@@ -2,6 +2,7 @@
 const express = require('express')
 const pool = require('../db')
 const authMiddleware = require('../middleware/authMiddleware')
+const { getFollowers, getFollowing } = require('../controllers/followLists')
 
 const router = express.Router()
 
@@ -132,6 +133,12 @@ router.get('/search', authMiddleware, async (req, res) => {
     })
   }
 })
+
+// Get a user's followers
+router.get('/:username/followers', authMiddleware, getFollowers)
+
+// Get users followed by a user
+router.get('/:username/following', authMiddleware, getFollowing)
 
 // Get a public user profile
 router.get('/:username', authMiddleware, async (req, res) => {

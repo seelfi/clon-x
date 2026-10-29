@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { followUser, unfollowUser } from "../services/api";
 import "../styles/Profile.css";
@@ -16,9 +16,19 @@ function normalizeUsername(username) {
 function Following() {
   const { username } = useParams();
 
-  const [users, setUsers] = useState([]);
   const [myFollowingUsernames, setMyFollowingUsernames] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSelection, setPageSelection] = useState({
+    username: null,
+    page: 1,
+  });
+  const [listData, setListData] = useState({
+    username: null,
+    page: 0,
+    items: [],
+    totalItems: 0,
+    totalPages: 0,
+  });
+  const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processingUser, setProcessingUser] = useState(null);
@@ -37,23 +47,46 @@ function Following() {
     normalizeUsername(username) ===
     normalizeUsername(currentUsername);
 
-  const usersPerPage = 10;
-  const totalPages = Math.max(
-    1,
-    Math.ceil(users.length / usersPerPage)
+  const currentPage =
+    pageSelection.username === username ? pageSelection.page : 1;
+
+  const setCurrentPage = useCallback(
+    (nextPage) => {
+      setPageSelection((current) => {
+        const page = current.username === username ? current.page : 1;
+
+        return {
+          username,
+          page:
+            typeof nextPage === "function" ? nextPage(page) : nextPage,
+        };
+      });
+    },
+    [username]
   );
 
-  const visibleUsers = users.slice(
-    (currentPage - 1) * usersPerPage,
-    currentPage * usersPerPage
-  );
+  const hasCurrentPage =
+    listData.username === username && listData.page === currentPage;
+  const isCurrentProfile = listData.username === username;
+  const users = hasCurrentPage ? listData.items : [];
+  const totalItems = isCurrentProfile ? listData.totalItems : 0;
+  const totalPages = isCurrentProfile ? listData.totalPages : 0;
+  const isLoading = loading || (!error && !hasCurrentPage);
+
+  const usersPerPage = 10;
+  const displayTotalPages = Math.max(1, totalPages);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchFollowing(targetUsername, token) {
+    async function fetchFollowing(
+      targetUsername,
+      token,
+      page = 1,
+      size = usersPerPage
+    ) {
       const response = await fetch(
-        `${API_URL}/follows/${encodeURIComponent(targetUsername)}/following`,
+        `${API_URL}/users/${encodeURIComponent(targetUsername)}/following?page=${page}&size=${size}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -69,7 +102,26 @@ function Following() {
         );
       }
 
-      return data.items || [];
+      return data;
+    }
+
+    async function fetchFollowStatus(targetUsername, token) {
+      const response = await fetch(
+        `${API_URL}/follows/${encodeURIComponent(targetUsername)}/status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "No se pudo consultar el seguimiento.");
+      }
+
+      return data.isFollowing;
     }
 
     async function loadFollowing() {
@@ -91,24 +143,41 @@ function Following() {
           );
         }
 
-        const [profileFollowing, myFollowing] = await Promise.all([
-          fetchFollowing(username, token),
-          fetchFollowing(currentUsername, token),
-        ]);
+        const profileFollowing = await fetchFollowing(
+          username,
+          token,
+          currentPage,
+          usersPerPage
+        );
 
         if (cancelled) return;
 
-        const sortedUsers = [...profileFollowing].sort((a, b) =>
-          (a.fullName || "").localeCompare(
-            b.fullName || "",
-            "es"
-          )
-        );
+        const profileItems = profileFollowing.items || [];
+        const myFollowingUsernames = isOwnList
+          ? profileItems.map((user) => user.username)
+          : (
+              await Promise.all(
+                profileItems.map(async (user) =>
+                  (await fetchFollowStatus(user.username, token))
+                    ? user.username
+                    : null
+                )
+              )
+            ).filter(Boolean);
 
-        setUsers(sortedUsers);
-        setMyFollowingUsernames(
-          myFollowing.map((user) => user.username)
-        );
+        if (cancelled) return;
+
+        setListData({
+          username,
+          page: currentPage,
+          items: profileItems,
+          totalItems: profileFollowing.totalItems || 0,
+          totalPages: profileFollowing.totalPages || 0,
+        });
+        setMyFollowingUsernames(myFollowingUsernames);
+
+        const lastPage = Math.max(1, profileFollowing.totalPages || 0);
+        if (currentPage > lastPage) setCurrentPage(lastPage);
       } catch (err) {
         if (!cancelled) {
           setError(
@@ -127,30 +196,18 @@ function Following() {
     return () => {
       cancelled = true;
     };
-  }, [username, currentUsername]);
-
-  // Reset pagination when changing profiles.
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [username]);
-
-  // Keep the current page within the available range.
-  useEffect(() => {
-    const maxPage = Math.max(
-      1,
-      Math.ceil(users.length / usersPerPage)
-    );
-
-    if (currentPage > maxPage) {
-      setCurrentPage(maxPage);
-    }
-  }, [currentPage, users.length]);
+  }, [
+    username,
+    currentUsername,
+    isOwnList,
+    currentPage,
+    refreshKey,
+    setCurrentPage,
+  ]);
 
   // Delay the unfollow request to allow the user to undo it.
   useEffect(() => {
     if (!pendingUnfollow) return undefined;
-
-    setUnfollowSeconds(UNFOLLOW_DELAY);
 
     const countdownInterval = setInterval(() => {
       setUnfollowSeconds((seconds) => Math.max(0, seconds - 1));
@@ -172,15 +229,7 @@ function Following() {
         );
 
         // Remove the user only after the backend confirms the action.
-        if (isOwnList) {
-          setUsers((current) =>
-            current.filter(
-              (user) =>
-                normalizeUsername(user.username) !==
-                normalizeUsername(pendingUnfollow)
-            )
-          );
-        }
+        setRefreshKey((current) => current + 1);
       } catch (err) {
         setError(
           err.message ||
@@ -196,7 +245,7 @@ function Following() {
       clearInterval(countdownInterval);
       clearTimeout(unfollowTimeout);
     };
-  }, [pendingUnfollow, isOwnList]);
+  }, [pendingUnfollow]);
 
   async function handleFollow(targetUsername) {
     if (processingUser || pendingUnfollow) return;
@@ -262,17 +311,17 @@ function Following() {
         </div>
 
         <p className="follow-list-count">
-          {loading ? "Cargando..." : `${users.length} siguiendo`}
+          {isLoading ? "Cargando..." : `${totalItems} siguiendo`}
         </p>
       </header>
 
       {error && <p role="alert">{error}</p>}
 
       <section className="follow-list">
-        {loading ? (
+        {isLoading ? (
           <p>Cargando usuarios...</p>
         ) : users.length > 0 ? (
-          visibleUsers.map((user) => {
+          users.map((user) => {
             const isFollowing = myFollowingUsernames.some(
               (item) =>
                 normalizeUsername(item) ===
@@ -373,7 +422,7 @@ function Following() {
       </section>
 
       <footer className="follow-list-footer">
-        {totalPages > 1 ? (
+        {displayTotalPages > 1 ? (
           <nav
             className="pagination"
             aria-label="Paginación de usuarios"
@@ -391,24 +440,24 @@ function Following() {
             </button>
 
             <span>
-              Página {currentPage} de {totalPages}
+              Página {currentPage} de {displayTotalPages}
             </span>
 
             <button
               type="button"
               onClick={() =>
                 setCurrentPage((page) =>
-                  Math.min(totalPages, page + 1)
+                  Math.min(displayTotalPages, page + 1)
                 )
               }
-              disabled={currentPage === totalPages}
+              disabled={currentPage === displayTotalPages}
             >
               Siguiente
             </button>
           </nav>
         ) : (
           <p>
-            Página {currentPage} de {totalPages}
+            Página {currentPage} de {displayTotalPages}
           </p>
         )}
       </footer>
