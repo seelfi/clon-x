@@ -25,6 +25,12 @@ function RightPanel() {
     }
   })()
 
+  function clearSearchState() {
+    setSuggestions([])
+    setSearchLoading(false)
+    setSearchError('')
+  }
+
   useEffect(() => {
     if (!message) return undefined
 
@@ -41,9 +47,6 @@ function RightPanel() {
     const query = searchTerm.trim()
 
     if (!query) {
-      setSuggestions([])
-      setSearchLoading(false)
-      setSearchError('')
       return undefined
     }
 
@@ -101,7 +104,7 @@ function RightPanel() {
 
   function handleSelectUser(targetUsername) {
     setSearchTerm('')
-    setSuggestions([])
+    clearSearchState()
     setShowSuggestions(false)
     navigate(`/users/${encodeURIComponent(targetUsername)}`)
   }
@@ -169,7 +172,9 @@ function RightPanel() {
           aria-label="Buscar usuarios"
           value={searchTerm}
           onChange={(event) => {
-            setSearchTerm(event.target.value)
+            const nextSearchTerm = event.target.value
+            setSearchTerm(nextSearchTerm)
+            if (!nextSearchTerm.trim()) clearSearchState()
             setShowSuggestions(true)
           }}
           onFocus={() => setShowSuggestions(true)}
