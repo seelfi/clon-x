@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   toggleLike,
   toggleRetweet,
@@ -95,7 +96,6 @@ function Tweet({ post }) {
 
     try {
       const result = await toggleLike(post.id);
-
       setLiked(result.liked);
       setLikesCount(result.likesCount);
     } catch (error) {
@@ -113,7 +113,6 @@ function Tweet({ post }) {
 
     try {
       const result = await toggleRetweet(post.id);
-
       setRetweeted(result.retweeted);
       setRetweetsCount(result.retweetsCount);
     } catch (error) {
@@ -134,7 +133,6 @@ function Tweet({ post }) {
 
       try {
         const result = await getComments(post.id);
-
         setComments(result.items || []);
         setCommentsLoaded(true);
       } catch (error) {
@@ -192,11 +190,17 @@ function Tweet({ post }) {
           <div className="post__main">
             <div className="post__author">
               <strong className="post__author-name">
-                {authorName}
+                <Link to={`/users/${encodeURIComponent(authorUsername)}`}>
+                  {authorName}
+                </Link>
               </strong>
 
               <span className="post__metadata">
-                @{authorUsername} · {getRelativeTime(post.createdAt)}
+                <Link to={`/users/${encodeURIComponent(authorUsername)}`}>
+                  @{authorUsername}
+                </Link>
+                {" · "}
+                {getRelativeTime(post.createdAt)}
               </span>
             </div>
 
@@ -208,7 +212,9 @@ function Tweet({ post }) {
             >
               <button
                 type="button"
-                className="post__action post__action--like"
+                className={`post__action post__action--like ${
+                  liked ? "is-active" : ""
+                }`}
                 onClick={handleLike}
                 disabled={likeLoading}
                 aria-pressed={liked}
@@ -227,12 +233,8 @@ function Tweet({ post }) {
                 onClick={handleRetweet}
                 disabled={retweetLoading}
                 aria-pressed={retweeted}
-                aria-label={
-                  retweeted ? "Deshacer retweet" : "Republicar"
-                }
-                title={
-                  retweeted ? "Deshacer retweet" : "Republicar"
-                }
+                aria-label={retweeted ? "Deshacer retweet" : "Republicar"}
+                title={retweeted ? "Deshacer retweet" : "Republicar"}
               >
                 <span aria-hidden="true">↻</span>
                 <span>{retweetsCount}</span>
@@ -277,10 +279,7 @@ function Tweet({ post }) {
                 )}
 
                 {comments.map((comment) => (
-                  <div
-                    className="post__comment"
-                    key={comment.id}
-                  >
+                  <div className="post__comment" key={comment.id}>
                     <div
                       className="post__comment-avatar"
                       aria-hidden="true"
@@ -292,9 +291,7 @@ function Tweet({ post }) {
 
                     <div className="post__comment-body">
                       <div className="post__comment-author">
-                        <strong>
-                          {comment.fullName || "Usuario"}
-                        </strong>
+                        <strong>{comment.fullName || "Usuario"}</strong>
 
                         <span className="post__metadata">
                           @{comment.username || "usuario"}
@@ -302,7 +299,8 @@ function Tweet({ post }) {
 
                         {comment.createdAt && (
                           <span className="post__metadata">
-                            · {getRelativeTime(comment.createdAt)}
+                            {" · "}
+                            {getRelativeTime(comment.createdAt)}
                           </span>
                         )}
                       </div>
@@ -329,9 +327,7 @@ function Tweet({ post }) {
 
                   <button
                     type="submit"
-                    disabled={
-                      !commentContent.trim() || commentLoading
-                    }
+                    disabled={!commentContent.trim() || commentLoading}
                   >
                     {commentLoading ? "Enviando..." : "Responder"}
                   </button>

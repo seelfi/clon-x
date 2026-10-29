@@ -633,3 +633,15 @@
     margin-left: 46px;
   }
 }
+
+.post__author-name a,
+.post__metadata a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.post__author-name a:hover,
+.post__metadata a:hover {
+  text-decoration: underline;
+  cursor: pointer;
+}

@@ -9,6 +9,8 @@ router.get("/", authMiddleware, async (req, res) => {
   try {
     const page = Number(req.query.page) || 1;
     const size = Number(req.query.size) || 10;
+    const tab = req.query.tab || "forYou";
+    const userId = req.user.id;
 
     if (
       !Number.isSafeInteger(page) ||
@@ -18,23 +20,50 @@ router.get("/", authMiddleware, async (req, res) => {
       size > 100
     ) {
       return res.status(400).json({
-        message: "Page must be positive and size must be between 1 and 100",
+        message: "Invalid pagination parameters",
       });
     }
 
+    if (!["forYou", "following"].includes(tab)) {
+      return res.status(400).json({
+        message: "Invalid feed tab",
+      });
+    }
+
+    let whereClause;
+    let whereParams;
+
+    if (tab === "following") {
+      // Show posts from followed users only.
+      whereClause = `
+        t.author_id IN (
+          SELECT f.followed_id
+          FROM follows f
+          WHERE f.follower_id = ?
+        )
+      `;
+      whereParams = [userId];
+    } else {
+      // Show posts from users the current user does not follow.
+      whereClause = `
+        t.author_id <> ?
+        AND NOT EXISTS (
+          SELECT 1
+          FROM follows f
+          WHERE f.follower_id = ?
+            AND f.followed_id = t.author_id
+        )
+      `;
+      whereParams = [userId, userId];
+    }
+
     const offset = (page - 1) * size;
-    const userId = req.user.id;
 
     const [countResult] = await pool.execute(
       `SELECT COUNT(*) AS totalItems
        FROM tweets t
-       WHERE t.author_id = ?
-          OR t.author_id IN (
-            SELECT followed_id
-            FROM follows
-            WHERE follower_id = ?
-          )`,
-      [userId, userId]
+       WHERE ${whereClause}`,
+      whereParams
     );
 
     const totalItems = Number(countResult[0].totalItems);
@@ -76,36 +105,29 @@ router.get("/", authMiddleware, async (req, res) => {
          ) AS retweetedByMe
 
        FROM tweets t
-       INNER JOIN users u ON t.author_id = u.id
-       WHERE t.author_id = ?
-          OR t.author_id IN (
-            SELECT followed_id
-            FROM follows
-            WHERE follower_id = ?
-          )
+       INNER JOIN users u ON u.id = t.author_id
+       WHERE ${whereClause}
        ORDER BY t.created_at DESC, t.id DESC
        LIMIT ? OFFSET ?`,
-      [userId, userId, userId, userId, size, offset]
+      [userId, userId, ...whereParams, size, offset]
     );
 
-    const items = tweets.map((tweet) => ({
-      id: tweet.id,
-      content: tweet.content,
-      createdAt: tweet.created_at,
-      author: {
-        id: tweet.author_id,
-        fullName: tweet.full_name,
-        username: tweet.username,
-      },
-      likesCount: Number(tweet.likesCount),
-      retweetsCount: Number(tweet.retweetsCount),
-      commentsCount: Number(tweet.commentsCount),
-      likedByMe: Boolean(tweet.likedByMe),
-      retweetedByMe: Boolean(tweet.retweetedByMe),
-    }));
-
     return res.status(200).json({
-      items,
+      items: tweets.map((tweet) => ({
+        id: tweet.id,
+        content: tweet.content,
+        createdAt: tweet.created_at,
+        author: {
+          id: tweet.author_id,
+          fullName: tweet.full_name,
+          username: tweet.username,
+        },
+        likesCount: Number(tweet.likesCount),
+        retweetsCount: Number(tweet.retweetsCount),
+        commentsCount: Number(tweet.commentsCount),
+        likedByMe: Boolean(tweet.likedByMe),
+        retweetedByMe: Boolean(tweet.retweetedByMe),
+      })),
       page,
       size,
       totalItems,

@@ -47,9 +47,13 @@ export function register(fullName, username, email, password) {
   })
 }
 
-export function getFeed(page = 1, size = 10) {
-  return request(`/feed?page=${page}&size=${size}`)
+
+export function getFeed(page = 1, size = 10, tab = "forYou") {
+  return request(
+    `/feed?page=${page}&size=${size}&tab=${encodeURIComponent(tab)}`
+  );
 }
+
 
 export function createTweet(content) {
   return request('/tweets', {
