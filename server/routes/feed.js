@@ -34,27 +34,34 @@ router.get("/", authMiddleware, async (req, res) => {
     let whereParams;
 
     if (tab === "following") {
-      // Show posts from followed users only.
+      // Show posts from the current user and followed users.
       whereClause = `
-        t.author_id IN (
+        t.author_id = ?
+        OR t.author_id IN (
           SELECT f.followed_id
           FROM follows f
           WHERE f.follower_id = ?
         )
       `;
-      whereParams = [userId];
+      whereParams = [userId, userId];
     } else {
-      // Show posts from users the current user does not follow.
+      // Show the current user's posts, followed users' posts, and discovery posts.
       whereClause = `
-        t.author_id <> ?
-        AND NOT EXISTS (
+        t.author_id = ?
+        OR EXISTS (
+          SELECT 1
+          FROM follows f
+          WHERE f.follower_id = ?
+            AND f.followed_id = t.author_id
+        )
+        OR NOT EXISTS (
           SELECT 1
           FROM follows f
           WHERE f.follower_id = ?
             AND f.followed_id = t.author_id
         )
       `;
-      whereParams = [userId, userId];
+      whereParams = [userId, userId, userId];
     }
 
     const offset = (page - 1) * size;
