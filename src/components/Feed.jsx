@@ -11,6 +11,7 @@ function Feed() {
   const [activeTab, setActiveTab] = useState("forYou");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [retryCount, setRetryCount] = useState(0);
 
   const postsPerPage = 10;
 
@@ -64,7 +65,7 @@ function Feed() {
     return () => {
       cancelled = true;
     };
-  }, [currentPage, activeTab]);
+  }, [currentPage, activeTab, retryCount]);
 
   function handleTabChange(tab) {
     if (tab === activeTab) return;
@@ -128,13 +129,7 @@ function Feed() {
           <p>{error}</p>
           <button
             type="button"
-            onClick={() => {
-              setCurrentPage((page) => page);
-              setActiveTab((tab) =>
-                tab === "forYou" ? "following" : "forYou"
-              );
-              setActiveTab(activeTab);
-            }}
+            onClick={() => setRetryCount((count) => count + 1)}
           >
             Volver a intentar
           </button>
