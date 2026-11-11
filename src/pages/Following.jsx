@@ -2,12 +2,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
-  followUser,
-  getFollowStatus,
   getFollowing,
-  unfollowUser,
 } from "../services/api";
 import "../styles/Profile.css";
+import { useAuth } from "../context/AuthContext";
+import useFollow from "../hooks/useFollow";
 
 const UNFOLLOW_DELAY = 5;
 
@@ -33,15 +32,13 @@ function Following() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [processingUser, setProcessingUser] = useState(null);
   const [pendingUnfollow, setPendingUnfollow] = useState(null);
   const [unfollowSeconds, setUnfollowSeconds] = useState(
     UNFOLLOW_DELAY
   );
 
-  const loggedInUser = JSON.parse(
-    localStorage.getItem("user") || "null"
-  );
+  const loggedInUser = useAuth().user;
+  const { processingUser, follow, unfollow } = useFollow();
 
   const currentUsername = loggedInUser?.username || "";
 
@@ -86,14 +83,6 @@ function Following() {
       setError("");
 
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          throw new Error(
-            "Debes iniciar sesión para ver esta lista."
-          );
-        }
-
         if (!currentUsername) {
           throw new Error(
             "No se pudo identificar tu sesión. Cierra sesión e inicia nuevamente."
@@ -114,7 +103,7 @@ function Following() {
           : (
               await Promise.all(
                 profileItems.map(async (user) =>
-                  (await getFollowStatus(user.username)).isFollowing
+                  user.isFollowing
                     ? user.username
                     : null
                 )
@@ -170,11 +159,11 @@ function Following() {
     }, 1000);
 
     const unfollowTimeout = setTimeout(async () => {
-      setProcessingUser(pendingUnfollow);
       setError("");
 
       try {
-        await unfollowUser(pendingUnfollow);
+        const result = await unfollow(pendingUnfollow);
+        if (result === false) return;
 
         setMyFollowingUsernames((current) =>
           current.filter(
@@ -192,7 +181,6 @@ function Following() {
             "No se pudo dejar de seguir al usuario. Inténtalo nuevamente."
         );
       } finally {
-        setProcessingUser(null);
         setPendingUnfollow(null);
       }
     }, UNFOLLOW_DELAY * 1000);
@@ -201,7 +189,7 @@ function Following() {
       clearInterval(countdownInterval);
       clearTimeout(unfollowTimeout);
     };
-  }, [pendingUnfollow]);
+  }, [pendingUnfollow, unfollow]);
 
   async function handleFollow(targetUsername) {
     if (processingUser || pendingUnfollow) return;
@@ -221,10 +209,9 @@ function Following() {
       return;
     }
 
-    setProcessingUser(targetUsername);
-
     try {
-      await followUser(targetUsername);
+      const result = await follow(targetUsername);
+      if (result === false) return;
 
       setMyFollowingUsernames((current) =>
         current.some(
@@ -239,8 +226,6 @@ function Following() {
       setError(
         err.message || "No se pudo seguir al usuario."
       );
-    } finally {
-      setProcessingUser(null);
     }
   }
 

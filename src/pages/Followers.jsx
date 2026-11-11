@@ -1,13 +1,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  followUser,
-  getFollowers,
-  getFollowStatus,
-  unfollowUser,
-} from "../services/api";
+import { getFollowers } from "../services/api";
 import "../styles/Profile.css";
+import useFollow from "../hooks/useFollow";
 
 function Followers() {
   const { username } = useParams();
@@ -26,7 +22,7 @@ function Followers() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [processingUser, setProcessingUser] = useState(null);
+  const { processingUser, follow, unfollow } = useFollow();
 
   const currentPage =
     pageSelection.username === username ? pageSelection.page : 1;
@@ -65,20 +61,12 @@ function Followers() {
       setError("");
 
       try {
-        const token = localStorage.getItem("token");
-
-        if (!token) {
-          throw new Error("Debes iniciar sesión para ver esta lista.");
-        }
-
         const data = await getFollowers(username, currentPage, usersPerPage);
 
         const items = data.items || [];
         const followedUsernames = await Promise.all(
           items.map(async (user) => {
-            const statusData = await getFollowStatus(user.username);
-
-            return statusData.isFollowing ? user.username : null;
+            return user.isFollowing ? user.username : null;
           })
         );
 
@@ -126,17 +114,18 @@ function Followers() {
 
     const isFollowing = followingUsernames.includes(targetUsername);
 
-    setProcessingUser(targetUsername);
     setError("");
 
     try {
       if (isFollowing) {
-        await unfollowUser(targetUsername);
+        const result = await unfollow(targetUsername);
+        if (result === false) return;
         setFollowingUsernames((current) =>
           current.filter((item) => item !== targetUsername)
         );
       } else {
-        await followUser(targetUsername);
+        const result = await follow(targetUsername);
+        if (result === false) return;
         setFollowingUsernames((current) =>
           current.includes(targetUsername)
             ? current
@@ -145,8 +134,6 @@ function Followers() {
       }
     } catch (err) {
       setError(err.message || "No se pudo actualizar el seguimiento.");
-    } finally {
-      setProcessingUser(null);
     }
   }
 

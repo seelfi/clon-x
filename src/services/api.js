@@ -2,12 +2,21 @@
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:3000/api'
 
+let getAuthToken = () => null
+let onUnauthorized = () => {}
+
+export function setAuthIntegration(integration = {}) {
+  getAuthToken = integration.getToken || (() => null)
+  onUnauthorized = integration.onUnauthorized || (() => {})
+}
+
 async function request(
   endpoint,
   options = {},
   fallbackMessage = 'Error en la solicitud'
 ) {
-  const token = localStorage.getItem('token')
+  const isAuthEndpoint = endpoint.startsWith('/auth/')
+  const token = isAuthEndpoint ? null : getAuthToken()
 
   const headers = {
     'Content-Type': 'application/json',
@@ -24,6 +33,10 @@ async function request(
   })
 
   const data = await response.json()
+
+  if (response.status === 401 && token) {
+    onUnauthorized(token)
+  }
 
   if (!response.ok) {
     throw new Error(data.message || fallbackMessage)

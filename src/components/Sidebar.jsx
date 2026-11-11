@@ -1,33 +1,16 @@
 
 import { Link, NavLink, useNavigate } from 'react-router-dom'
 import '../styles/Sidebar.css'
+import { useAuth } from '../context/AuthContext'
 
 function Sidebar() {
   const navigate = useNavigate()
 
-  let currentUser = {
-    fullName: 'Usuario',
-    username: 'usuario',
-  }
-
-  try {
-    const storedUser = localStorage.getItem('user')
-
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser)
-
-      currentUser = {
-        fullName: parsedUser.fullName || 'Usuario',
-        username: parsedUser.username || 'usuario',
-      }
-    }
-  } catch {
-    localStorage.removeItem('user')
-  }
+  const { user, signOut } = useAuth()
+  const currentUser = { fullName: user?.fullName || 'Usuario', username: user?.username || 'usuario' }
 
   function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
+    signOut()
     navigate('/login', { replace: true })
   }
 

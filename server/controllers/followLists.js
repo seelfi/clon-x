@@ -59,17 +59,21 @@ async function getFollowList(req, res, listType) {
       `SELECT
          u.id,
          u.full_name AS fullName,
-         u.username
+         u.username,
+         EXISTS (
+           SELECT 1 FROM follows mine
+           WHERE mine.follower_id = ? AND mine.followed_id = u.id
+         ) AS isFollowing
        FROM follows f
        INNER JOIN users u ON u.id = f.${personColumn}
        WHERE f.${relationColumn} = ?
        ORDER BY u.full_name ASC, u.id ASC
        LIMIT ? OFFSET ?`,
-      [userId, pagination.size, pagination.offset]
+      [req.user.id, userId, pagination.size, pagination.offset]
     )
 
     return res.status(200).json({
-      items,
+      items: items.map((item) => ({ ...item, isFollowing: Boolean(item.isFollowing) })),
       page: pagination.page,
       size: pagination.size,
       totalItems,

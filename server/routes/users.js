@@ -22,7 +22,9 @@ router.get('/me', authMiddleware, async (req, res) => {
           WHERE f.followed_id = u.id) AS followersCount,
          (SELECT COUNT(*)
           FROM follows f
-          WHERE f.follower_id = u.id) AS followingCount
+          WHERE f.follower_id = u.id) AS followingCount,
+        (SELECT COUNT(*) FROM tweets t WHERE t.author_id = u.id) AS tweetsCount,
+        (SELECT COUNT(*) FROM retweets r WHERE r.user_id = u.id) AS retweetsCount
        FROM users u
        WHERE u.id = ?`,
       [req.user.id]
@@ -45,6 +47,8 @@ router.get('/me', authMiddleware, async (req, res) => {
       createdAt: user.created_at,
       followersCount: user.followersCount,
       followingCount: user.followingCount,
+      tweetsCount: Number(user.tweetsCount),
+      retweetsCount: Number(user.retweetsCount),
     })
   } catch (error) {
     console.error('Error getting user profile:', error)
@@ -172,6 +176,12 @@ router.get('/:username', authMiddleware, async (req, res) => {
          (SELECT COUNT(*)
           FROM follows f
           WHERE f.follower_id = u.id) AS followingCount,
+         (SELECT COUNT(*)
+          FROM tweets t
+          WHERE t.author_id = u.id) AS tweetsCount,
+         (SELECT COUNT(*)
+          FROM retweets r
+          WHERE r.user_id = u.id) AS retweetsCount,
          EXISTS (
            SELECT 1
            FROM follows f
@@ -199,6 +209,8 @@ router.get('/:username', authMiddleware, async (req, res) => {
       createdAt: user.created_at,
       followersCount: user.followersCount,
       followingCount: user.followingCount,
+      tweetsCount: Number(user.tweetsCount),
+      retweetsCount: Number(user.retweetsCount),
       isFollowing: Boolean(user.isFollowing),
     })
   } catch (error) {

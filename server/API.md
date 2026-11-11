@@ -1,246 +1,398 @@
 # API de Clon de X
 
-## URL base
+Referencia de la API implementada en `server/`. Las rutas `/api/auth`, `/api/users`, `/api/tweets`, `/api/feed` y `/api/follows` usan MySQL. Las rutas heredadas `/api/posts` son una excepción en memoria.
 
-```text
-http://localhost:3000/api
-```
+## Base y autenticación
 
-Las rutas JSON esperan cuerpos `application/json` cuando reciben un cuerpo. El formato de serialización de las fechas depende de `mysql2` y de la configuración de MySQL; aquí solo se documentan los campos que construye cada controlador.
+- Base URL local: `http://localhost:3000/api` (el servidor escucha en el puerto `3000`).
+- Las rutas que reciben datos esperan cuerpos JSON (`Content-Type: application/json`).
+- Las rutas marcadas **Autenticada** requieren `Authorization: Bearer <token>`.
+- El token JWT se obtiene al iniciar sesión, expira a las 2 horas y se valida con `JWT_SECRET`.
+- Sin token, las rutas protegidas responden `401` con `{"message":"Token de autenticación requerido"}`. Un token inválido o expirado responde `401` con `{"message":"Token inválido o expirado"}`.
+- Los ejemplos muestran los campos relevantes y tipos JSON devueltos; los identificadores y fechas son ilustrativos.
 
-## Autenticación JWT
+## Convenciones de paginación
 
-Las rutas protegidas requieren un JWT en el encabezado:
-
-```http
-Authorization: Bearer <token>
-```
-
-El token se obtiene con `POST /auth/login` y el backend lo firma con expiración de dos horas. Si falta el encabezado Bearer o el token no es válido o expiró, el middleware devuelve `401 Unauthorized`.
-
-Las excepciones sin JWT son `POST /auth/register`, `POST /auth/login` y las rutas heredadas en memoria `/api/posts`. Las demás rutas descritas abajo usan `authMiddleware`.
-
-## Endpoints de autenticación
-
-### `POST /auth/register`
-
-Registra un usuario. No requiere autenticación.
-
-**Cuerpo JSON:**
+Las respuestas paginadas tienen esta forma:
 
 ```json
 {
-  "fullName": "<nombre completo>",
-  "username": "<nombre de usuario>",
-  "email": "<correo>",
-  "password": "<contraseña de al menos 8 caracteres>"
+  "items": [],
+  "page": 1,
+  "size": 10,
+  "totalItems": 0,
+  "totalPages": 0
 }
 ```
 
-Los cuatro campos deben ser cadenas no vacías; se recortan nombre y username, y el correo se recorta y pasa a minúsculas. El correo debe coincidir con el patrón que valida el controlador. La contraseña debe tener al menos 8 caracteres.
+`totalPages` es `Math.ceil(totalItems / size)`, por lo que es `0` cuando no hay resultados. Una página posterior a la última responde normalmente con `items: []` y conserva los metadatos calculados; el servidor no limita la página solicitada al último número disponible.
 
-**Éxito `201 Created`:** `{ message, user: { id, fullName, username, email } }`. La contraseña no se devuelve.
+El máximo de `size` en feed, publicaciones de perfil y listas de seguidores/seguidos es 100. Los valores predeterminados y el modo de validar parámetros varían según la ruta, como se especifica en cada sección.
 
-**Errores:** `400` por campos requeridos, correo inválido o contraseña corta; `409` si username o correo ya existen; `500` ante otro error del servidor.
+## Autenticación
+
+### `POST /auth/register`
+
+Registra una cuenta. **No requiere autenticación.**
+
+Body:
+
+```json
+{
+  "fullName": "Ana Pérez",
+  "username": "ana",
+  "email": "ana@example.com",
+  "password": "contrasena123"
+}
+```
+
+Los cuatro valores deben ser cadenas no vacías; `fullName`, `username` y `email` se recortan, el correo se convierte a minúsculas y debe tener formato de correo. La contraseña debe tener al menos 8 caracteres. `username` y `email` deben ser únicos.
+
+Éxito `201` (el registro no devuelve token):
+
+```json
+{
+  "message": "Usuario registrado correctamente",
+  "user": { "id": 12, "fullName": "Ana Pérez", "username": "ana", "email": "ana@example.com" }
+}
+```
+
+Otros estados: `400` datos inválidos, `409` nombre de usuario o correo ya registrado, `500` error del servidor.
 
 ### `POST /auth/login`
 
-Inicia sesión con username y contraseña. No requiere autenticación.
+Inicia sesión. **No requiere autenticación.**
 
-**Cuerpo JSON:** `{ "username": "<nombre de usuario>", "password": "<contraseña>" }`.
+Body:
 
-**Éxito `200 OK`:** `{ message, token, user: { id, fullName, username, email } }`. El JWT expira en dos horas.
+```json
+{ "username": "ana", "password": "contrasena123" }
+```
 
-**Errores:** `400` si falta username o contraseña; `401` si el usuario o la contraseña no coinciden; `500` si falta `JWT_SECRET` o ocurre otro error del servidor.
+Éxito `200`:
 
-## Usuarios
+```json
+{
+  "message": "Inicio de sesión exitoso",
+  "token": "<jwt>",
+  "user": { "id": 12, "fullName": "Ana Pérez", "username": "ana", "email": "ana@example.com" }
+}
+```
 
-Todas las rutas de esta sección requieren JWT.
+Otros estados: `400` campos inválidos o vacíos, `401` usuario o contraseña incorrectos, `500` error del servidor o `JWT_SECRET` no configurado.
+
+## Usuarios y perfiles
+
+Todas las rutas de esta sección requieren autenticación.
 
 ### `GET /users/me`
 
-Devuelve el perfil del usuario autenticado.
+Devuelve los datos del usuario autenticado, incluidos los conteos agregados desde la base de datos.
 
-**Éxito `200 OK`:** `{ id, fullName, username, email, bio, createdAt, followersCount, followingCount }`.
+Respuesta `200`:
 
-**Errores:** `404` si no se encuentra el usuario de la sesión; `500` ante otro error del servidor.
+```json
+{
+  "id": 12,
+  "fullName": "Ana Pérez",
+  "username": "ana",
+  "email": "ana@example.com",
+  "bio": "Hola",
+  "createdAt": "2026-01-15T12:00:00.000Z",
+  "followersCount": 4,
+  "followingCount": 7,
+  "tweetsCount": 16,
+  "retweetsCount": 3
+}
+```
 
-### `GET /users/:username`
-
-Devuelve el perfil consultado. `:username` es el nombre de usuario de la ruta.
-
-**Éxito `200 OK`:** `{ id, fullName, username, bio, createdAt, followersCount, followingCount, isFollowing }`. `isFollowing` representa si el usuario autenticado sigue el perfil consultado. La respuesta no incluye el correo.
-
-**Errores:** `404` si no existe el username; `500` ante otro error del servidor.
-
-### `GET /users/search?q=<texto>`
-
-Busca por username o nombre completo. Si `q` está vacío o solo contiene espacios, devuelve `200 OK` con `{ "items": [] }`. La consulta limita la lista a ocho resultados.
-
-**Éxito `200 OK`:** `{ items: [{ id, fullName, username }] }`.
-
-**Error:** `500` ante un error del servidor.
+`tweetsCount` cuenta las publicaciones propias y `retweetsCount` las republicaciones hechas por ese usuario. Otros estados: `404` usuario no encontrado, `500` error del servidor.
 
 ### `PUT /users/me/bio`
 
-Actualiza la biografía del usuario autenticado.
+Actualiza la biografía del usuario autenticado. Body: `{"bio":"Texto de hasta 160 caracteres"}`. `bio` debe ser una cadena; se recorta antes de guardar.
 
-**Cuerpo JSON:** `{ "bio": "<texto>" }`. `bio` debe ser una cadena; el backend elimina espacios al inicio y al final y permite hasta 160 caracteres. Una cadena vacía es válida.
+Éxito `200`: `{"message":"Bio updated successfully","bio":"Texto de hasta 160 caracteres"}`. Otros estados: `400` tipo inválido o más de 160 caracteres, `404` usuario no encontrado/sin fila actualizada, `500` error del servidor.
 
-**Éxito `200 OK`:** `{ message, bio }`.
+### `GET /users/search?q={texto}`
 
-**Errores:** `400` si `bio` no es una cadena o supera 160 caracteres; `404` si no se encuentra el usuario; `500` ante otro error del servidor.
+Busca por nombre de usuario o nombre completo. `q` se recorta. Si está vacío, responde `200` con `{"items":[]}`. La búsqueda devuelve como máximo 8 resultados y los ordena dando prioridad al username exacto, luego al prefijo del username y después al resto; dentro de cada grupo ordena por username ascendente.
 
-### Listas de seguidores y seguidos
+Respuesta `200`:
 
-Las listas actuales están disponibles bajo `/users`. Ambas aceptan `page` (predeterminado `1`) y `size` (predeterminado `10`). `page` y `size` deben ser enteros seguros; `page` debe ser al menos `1`, y `size` debe estar entre `1` y `100`. La ordenación es por nombre completo ascendente y, para desempatar, por ID ascendente.
+```json
+{"items":[{"id":12,"fullName":"Ana Pérez","username":"ana"}]}
+```
 
-**`GET /users/:username/followers?page=1&size=10`** devuelve quién sigue al usuario indicado.
+Otros estados: `500` error del servidor.
 
-**`GET /users/:username/following?page=1&size=10`** devuelve a quién sigue el usuario indicado.
+### `GET /users/:username`
 
-**Éxito `200 OK`** para ambas rutas:
+Devuelve el perfil público indicado por `username`, con conteos de ese usuario y el estado de seguimiento respecto al usuario autenticado.
+
+Respuesta `200`:
+
+```json
+{
+  "id": 12,
+  "fullName": "Ana Pérez",
+  "username": "ana",
+  "bio": "Hola",
+  "createdAt": "2026-01-15T12:00:00.000Z",
+  "followersCount": 4,
+  "followingCount": 7,
+  "tweetsCount": 16,
+  "retweetsCount": 3,
+  "isFollowing": true
+}
+```
+
+`isFollowing` indica si el usuario autenticado sigue al perfil solicitado. En el perfil propio será `false` porque no existe auto-seguimiento. No se devuelve `email`. Otros estados: `404` perfil inexistente, `500` error del servidor.
+
+### `GET /users/:username/tweets?page={page}&size={size}`
+
+Devuelve publicaciones propias del perfil indicado, ordenadas de más recientes a más antiguas (desempate por id descendente). `page` y `size` por defecto son `1` y `10`. Se convierten con `parseInt`; valores ausentes, no convertibles o cero usan el valor predeterminado. Como `parseInt` acepta el prefijo entero, por ejemplo `2abc` se interpreta como `2`. Después de esa conversión se responde `400` si `page < 1`, `size < 1` o `size > 100`.
+
+Respuesta `200`:
 
 ```json
 {
   "items": [
-    { "id": 1, "fullName": "<nombre completo>", "username": "<nombre de usuario>" }
+    { "id": 91, "content": "Hola", "createdAt": "2026-02-02T10:30:00.000Z", "author": { "id": 12, "fullName": "Ana Pérez", "username": "ana" } }
   ],
   "page": 1,
   "size": 10,
-  "totalItems": 1,
+  "totalItems": 16,
+  "totalPages": 2
+}
+```
+
+Otros estados: `400` parámetros fuera de los límites anteriores, `404` perfil inexistente, `500` error del servidor.
+
+Nota: estas rutas no validan explícitamente que el `offset` calculado siga siendo un entero seguro. Para páginas extremadamente grandes, el comportamiento depende de la consulta MySQL y puede terminar en `500`.
+
+### `GET /users/:username/retweets?page={page}&size={size}`
+
+Devuelve publicaciones republicadas por el perfil indicado, ordenadas por fecha de republicación descendente (desempate por id descendente). Usa los mismos valores predeterminados y validación `parseInt` descritos para `/users/:username/tweets`.
+
+Respuesta `200`:
+
+```json
+{
+  "items": [
+    {
+      "id": 91,
+      "content": "Hola",
+      "createdAt": "2026-02-02T10:30:00.000Z",
+      "retweetedAt": "2026-02-03T09:00:00.000Z",
+      "retweetedBy": "ana",
+      "author": { "id": 18, "fullName": "Luis Díaz", "username": "luis" },
+      "likesCount": 2,
+      "retweetsCount": 1,
+      "commentsCount": 0,
+      "likedByMe": false,
+      "retweetedByMe": true
+    }
+  ],
+  "page": 1,
+  "size": 10,
+  "totalItems": 3,
   "totalPages": 1
 }
 ```
 
-Si no hay resultados, `items` está vacío y `totalPages` es `0`.
+`retweetedBy` es el username del usuario cuyo listado de republicaciones se consulta; `author` es el autor original de la publicación. Los campos `likedByMe` y `retweetedByMe` corresponden al usuario autenticado. Otros estados: `400` parámetros inválidos, `404` perfil inexistente, `500` error del servidor.
 
-**Errores:** `400` por parámetros no válidos o un offset no representable como entero seguro; `404` si no existe el perfil; `500` ante otro error del servidor.
+### `GET /users/:username/followers?page={page}&size={size}`
+### `GET /users/:username/following?page={page}&size={size}`
 
-### `GET /users/:username/tweets?page=1&size=10`
+Devuelve, respectivamente, los seguidores del usuario y las cuentas que sigue. `page`/`size` por defecto son `1`/`10`; deben ser enteros seguros, `page >= 1` y `1 <= size <= 100`. Un offset no representable como entero seguro también produce `400`. Los elementos se ordenan por `fullName` ascendente y luego por `id` ascendente.
 
-Devuelve las publicaciones escritas por el usuario indicado. `page` predeterminado `1`; `size` predeterminado `10`; el tamaño máximo aceptado es `100`. Los valores se convierten con `parseInt`; valores que resultan en cero o `NaN` usan el valor predeterminado. Valores negativos, `size` mayor que `100` o menor que `1` producen `400`.
+Respuesta `200` de ejemplo:
 
-**Éxito `200 OK`:** `{ items, page, size, totalItems, totalPages }`. Cada item contiene `id`, `content`, `createdAt` y `author: { id, fullName, username }`. Los resultados se ordenan por fecha descendente y luego por ID descendente.
+```json
+{
+  "items": [
+    { "id": 22, "fullName": "Carlos Ruiz", "username": "carlos", "isFollowing": true },
+    { "id": 25, "fullName": "Marta León", "username": "marta", "isFollowing": false }
+  ],
+  "page": 1,
+  "size": 10,
+  "totalItems": 2,
+  "totalPages": 1
+}
+```
 
-**Errores:** `404` si no existe el username; `500` ante otro error del servidor.
-
-### `GET /users/:username/retweets?page=1&size=10`
-
-Devuelve las publicaciones que el usuario indicado ha retuiteado. Usa los mismos valores predeterminados y validaciones de `page` y `size` que la ruta de tweets de perfil.
-
-**Éxito `200 OK`:** `{ items, page, size, totalItems, totalPages }`. Cada item contiene `id`, `content`, `createdAt`, `retweetedAt`, `retweetedBy`, `author: { id, fullName, username }`, `likesCount`, `retweetsCount`, `commentsCount`, `likedByMe` y `retweetedByMe`. Se ordena por fecha del retuit descendente y luego por ID del retuit descendente.
-
-**Errores:** `404` si no existe el username; `500` ante otro error del servidor.
+`isFollowing` en cada elemento indica si el usuario autenticado sigue a esa cuenta, tanto en la lista de seguidores como en la de seguidos. Otros estados: `400` paginación inválida, `404` usuario de la URL inexistente, `500` error del servidor.
 
 ## Feed
 
-### `GET /feed?page=1&size=10&tab=forYou`
+### `GET /feed?page={page}&size={size}&tab={tab}`
 
-Requiere JWT. `page` predeterminado `1`, `size` predeterminado `10`, y `tab` predeterminado `forYou`. Los valores aceptados para `tab` son `forYou` y `following`. `page` y `size` deben ser enteros seguros positivos; `size` no puede superar `100`.
+Requiere autenticación. `page` y `size` por defecto son `1` y `10`; `tab` por defecto es `forYou`. Se aceptan `forYou` y `following`. Los parámetros numéricos deben convertirse a enteros seguros, `page >= 1` y `1 <= size <= 100`; ausentes, vacíos, no numéricos y cero usan el valor predeterminado por la conversión `Number(value) || default`.
 
-- `forYou` incluye publicaciones propias, de cuentas seguidas y de otros usuarios.
-- `following` incluye publicaciones propias y de cuentas seguidas.
+- `forYou`: incluye publicaciones propias, de cuentas seguidas y de otros usuarios (la consulta actual contempla todos esos grupos).
+- `following`: incluye publicaciones propias y de cuentas que sigue el usuario autenticado.
 
-**Éxito `200 OK`:** `{ items, page, size, totalItems, totalPages }`. Cada item contiene `id`, `content`, `createdAt`, `author: { id, fullName, username }`, `likesCount`, `retweetsCount`, `commentsCount`, `likedByMe` y `retweetedByMe`. Se ordenan por fecha descendente y luego por ID descendente.
+Ordena por fecha de creación descendente y luego id descendente.
 
-Una página superior a la última devuelve `200 OK` con `items` vacío y los metadatos calculados para la consulta.
+Respuesta `200`:
 
-**Errores:** `400` por parámetros de paginación inválidos o `tab` no admitida; `500` ante otro error del servidor.
+```json
+{
+  "items": [
+    {
+      "id": 91,
+      "content": "Hola",
+      "createdAt": "2026-02-02T10:30:00.000Z",
+      "author": { "id": 12, "fullName": "Ana Pérez", "username": "ana" },
+      "likesCount": 2,
+      "retweetsCount": 1,
+      "commentsCount": 0,
+      "likedByMe": false,
+      "retweetedByMe": false
+    }
+  ],
+  "page": 1,
+  "size": 10,
+  "totalItems": 31,
+  "totalPages": 4
+}
+```
 
-Nota de implementación: el parser del feed convierte valores ausentes, vacíos, cero o no numéricos de `page`/`size` a sus valores predeterminados antes de validarlos.
+Otros estados: `400` página/tamaño fuera de límites o `tab` desconocida, `500` error del servidor.
 
-## Tweets
+Nota: el feed valida que `page` y `size` sean enteros seguros, pero no valida por separado el `offset` calculado. Un `page` enorme que produzca un offset no seguro puede fallar al ejecutar la consulta y responder `500`.
 
-Todas las rutas de esta sección requieren JWT.
+## Publicaciones, reacciones y comentarios
+
+Todas las rutas de esta sección requieren autenticación.
 
 ### `POST /tweets`
 
-Crea una publicación del usuario autenticado.
+Crea una publicación. Body: `{"content":"Texto de la publicación"}`. `content` debe ser una cadena no vacía tras recortarla y tener como máximo 280 caracteres.
 
-**Cuerpo JSON:** `{ "content": "<texto de hasta 280 caracteres>" }`. El contenido debe ser una cadena no vacía después de recortarla.
+Éxito `201`:
 
-**Éxito `201 Created`:** `{ id, content, createdAt, author: { id, fullName, username } }`.
+```json
+{
+  "id": 91,
+  "content": "Texto de la publicación",
+  "createdAt": "2026-02-02T10:30:00.000Z",
+  "author": { "id": 12, "fullName": "Ana Pérez", "username": "ana" }
+}
+```
 
-**Errores:** `400` si el contenido falta, no es una cadena, está vacío o supera 280 caracteres; `500` ante otro error del servidor.
+Otros estados: `400` contenido inválido, `500` error del servidor.
 
 ### `POST /tweets/:id/like`
 
-Alterna el like del usuario autenticado para el tweet indicado. No requiere cuerpo.
+Alterna el “me gusta” del usuario autenticado para la publicación. `id` debe ser un entero seguro positivo.
 
-**Éxito `200 OK`:** `{ tweetId, liked, likesCount }`, donde `liked` refleja el nuevo estado.
-
-**Errores:** `400` si `:id` no es un entero seguro positivo; `404` si el tweet no existe; `500` ante otro error del servidor.
+Respuesta `200`: `{"tweetId":91,"liked":true,"likesCount":3}`. `liked` refleja el estado después de la operación. Otros estados: `400` id inválido, `404` publicación inexistente, `500` error del servidor.
 
 ### `POST /tweets/:id/retweet`
 
-Alterna el retuit del usuario autenticado. No requiere cuerpo.
+Alterna la republicación del usuario autenticado. `id` debe ser un entero seguro positivo.
 
-**Éxito `200 OK`:** `{ tweetId, retweeted, retweetsCount }`, donde `retweeted` refleja el nuevo estado.
-
-**Errores:** `400` si `:id` no es un entero seguro positivo; `404` si el tweet no existe; `500` ante otro error del servidor.
+Respuesta `200`: `{"tweetId":91,"retweeted":true,"retweetsCount":2}`. `retweeted` refleja el estado después de la operación. Otros estados: `400` id inválido, `404` publicación inexistente, `500` error del servidor.
 
 ### `GET /tweets/:id/comments`
 
-Devuelve los comentarios del tweet en orden ascendente por fecha y luego por ID.
+Devuelve los comentarios de una publicación en orden de creación ascendente y, en caso de empate, id ascendente. `id` debe ser un entero seguro positivo.
 
-**Éxito `200 OK`:** `{ items: [{ id, content, createdAt, userId, fullName, username }] }`.
+Respuesta `200`:
 
-**Errores:** `400` si `:id` no es un entero seguro positivo; `404` si el tweet no existe; `500` ante otro error del servidor.
+```json
+{
+  "items": [
+    { "id": 5, "content": "De acuerdo", "createdAt": "2026-02-02T10:35:00.000Z", "userId": 22, "fullName": "Carlos Ruiz", "username": "carlos" }
+  ]
+}
+```
+
+Otros estados: `400` id inválido, `404` publicación inexistente, `500` error del servidor.
 
 ### `POST /tweets/:id/comments`
 
-Crea un comentario del usuario autenticado.
+Crea un comentario. Body: `{"content":"Texto del comentario"}`. `id` debe ser un entero seguro positivo; el contenido debe ser una cadena no vacía tras recortarla y tener como máximo 280 caracteres.
 
-**Cuerpo JSON:** `{ "content": "<texto de hasta 280 caracteres>" }`. El contenido debe ser una cadena no vacía después de recortarla.
+Éxito `201`:
 
-**Éxito `201 Created`:** `{ id, content, createdAt, userId, fullName, username }`.
+```json
+{ "id": 5, "content": "Texto del comentario", "createdAt": "2026-02-02T10:35:00.000Z", "userId": 22, "fullName": "Carlos Ruiz", "username": "carlos" }
+```
 
-**Errores:** `400` si el ID no es válido o el contenido falta, está vacío o supera 280 caracteres; `404` si el tweet no existe; `500` ante otro error del servidor.
+Otros estados: `400` id o contenido inválidos, `404` publicación inexistente, `500` error del servidor.
 
 ## Seguimiento
 
-Todas las rutas de esta sección requieren JWT. Las acciones reciben `username` en el cuerpo JSON, no como parámetro de ruta.
+Todas las rutas requieren autenticación.
 
 ### `POST /follows`
 
-Sigue al usuario indicado.
+Sigue la cuenta identificada por `username`. Body: `{"username":"carlos"}`.
 
-**Cuerpo JSON:** `{ "username": "<nombre de usuario>" }`.
+Éxito `201`: `{"message":"User followed successfully","user":{"id":22,"fullName":"Carlos Ruiz","username":"carlos"}}`.
 
-**Éxito `201 Created`:** `{ message, user: { id, fullName, username } }`.
-
-**Errores:** `400` si falta username o se intenta seguir a sí mismo; `404` si el usuario no existe; `409` si ya lo sigue; `500` ante otro error del servidor.
+Otros estados: `400` falta username o se intenta seguirse a sí mismo, `404` usuario destino inexistente, `409` ya se sigue a ese usuario, `500` error del servidor.
 
 ### `DELETE /follows`
 
-Deja de seguir al usuario indicado.
+Deja de seguir la cuenta identificada por `username`. Body: `{"username":"carlos"}`.
 
-**Cuerpo JSON:** `{ "username": "<nombre de usuario>" }`.
-
-**Éxito `200 OK`:** `{ message, username }`.
-
-**Errores:** `400` si falta username o se intenta dejar de seguirse a sí mismo; `404` si el usuario no existe o la relación no existe; `500` ante otro error del servidor.
+Éxito `200`: `{"message":"User unfollowed successfully","username":"carlos"}`. Otros estados: `400` falta username o se intenta dejar de seguirse a sí mismo, `404` usuario inexistente o no había relación que eliminar, `500` error del servidor.
 
 ### `GET /follows/:username/status`
 
-Indica si el usuario autenticado sigue al username de la ruta.
+Devuelve si el usuario autenticado sigue al username indicado.
 
-**Éxito `200 OK`:** `{ "isFollowing": true }` o `{ "isFollowing": false }`.
+Respuesta `200`: `{"isFollowing":true}`. Otros estados: `404` usuario inexistente, `500` error del servidor.
 
-**Errores:** `404` si no existe el usuario; `500` ante otro error del servidor.
+### Rutas heredadas de listas
 
-### Rutas heredadas de consulta de listas
+`GET /follows/:username/followers?page={page}&size={size}` y `GET /follows/:username/following?page={page}&size={size}` son alias heredados de las rutas equivalentes bajo `/users/:username`. Ambas requieren autenticación y usan el mismo controlador, validación, orden, paginación, estructura de respuesta e `isFollowing` por elemento.
 
-El router también conserva `GET /follows/:username/followers?page=1&size=10` y `GET /follows/:username/following?page=1&size=10`, con el mismo middleware y controlador paginado que las rutas `/users/:username/...`.
+## Rutas heredadas de posts en memoria
 
-## Rutas heredadas en memoria
+Estas rutas están montadas en `/api/posts`, no requieren JWT y no consultan MySQL. El arreglo se inicializa al arrancar el proceso con un registro demostrativo y se pierde al reiniciar el servidor. No corresponde al feed de tweets.
 
-Además de las rutas que consultan MySQL, `server.js` define `GET /api/posts` y `POST /api/posts`. No requieren JWT y usan un arreglo en memoria del proceso; no forman parte del feed de MySQL y los datos agregados con POST no se persisten en la base de datos.
+### `GET /posts`
 
-- `GET /api/posts` devuelve el arreglo de publicaciones en memoria.
-- `POST /api/posts` recibe `{ "content": "<contenido>", "author": "<autor>" }`. Si falta cualquiera de los valores, responde `400` con `{ error }`; si los recibe, devuelve `201 Created` con `{ id, content, author, likes }`.
+Devuelve el arreglo actual, por ejemplo:
 
-## Alcance y verificación
+```json
+[{ "id": 1, "content": "¡Nuestra API REST ya está en construcción!", "author": "usuario_demo", "likes": 0 }]
+```
 
-Los métodos, cuerpos, campos y códigos de respuesta descritos aquí se derivan de la inspección estática de los routers, controladores y middleware. No implica que se hayan probado solicitudes contra un servidor o una base de datos en ejecución. Los errores de base de datos y otras excepciones internas se responden generalmente como `500` con un mensaje genérico.
+### `POST /posts`
+
+Body esperado: `{"content":"Hola","author":"ana"}`. El controlador comprueba que ambos valores sean truthy, crea un objeto en memoria con `id` igual al tamaño actual más uno y `likes: 0`, y responde `201` con ese objeto. Si falta uno de los valores, responde `400` con `{"error":"El contenido y el autor son obligatorios"}`. No aplica las validaciones, autenticación ni persistencia de `/tweets`.
+
+## Resumen de endpoints implementados
+
+| Método | Ruta | Autenticación | Descripción |
+|---|---|---|---|
+| POST | `/auth/register` | No | Registro |
+| POST | `/auth/login` | No | Inicio de sesión y emisión de JWT |
+| GET | `/users/me` | Sí | Usuario autenticado y conteos |
+| PUT | `/users/me/bio` | Sí | Actualización de biografía |
+| GET | `/users/search` | Sí | Búsqueda de usuarios |
+| GET | `/users/:username` | Sí | Perfil y conteos |
+| GET | `/users/:username/tweets` | Sí | Publicaciones paginadas del perfil |
+| GET | `/users/:username/retweets` | Sí | Republicaciones paginadas del perfil |
+| GET | `/users/:username/followers` | Sí | Seguidores paginados |
+| GET | `/users/:username/following` | Sí | Seguidos paginados |
+| GET | `/feed` | Sí | Feed paginado |
+| POST | `/tweets` | Sí | Crear publicación |
+| POST | `/tweets/:id/like` | Sí | Alternar “me gusta” |
+| POST | `/tweets/:id/retweet` | Sí | Alternar republicación |
+| GET | `/tweets/:id/comments` | Sí | Listar comentarios |
+| POST | `/tweets/:id/comments` | Sí | Crear comentario |
+| POST | `/follows` | Sí | Seguir usuario |
+| DELETE | `/follows` | Sí | Dejar de seguir usuario |
+| GET | `/follows/:username/status` | Sí | Consultar relación de seguimiento |
+| GET | `/follows/:username/followers` | Sí | Alias heredado de lista de seguidores |
+| GET | `/follows/:username/following` | Sí | Alias heredado de lista de seguidos |
+| GET | `/posts` | No | Listar posts heredados en memoria |
+| POST | `/posts` | No | Crear post heredado en memoria |

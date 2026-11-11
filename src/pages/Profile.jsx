@@ -6,7 +6,6 @@ import {
   getUserProfile,
   getUserTweets,
   getUserRetweets,
-  getFollowStatus,
   followUser,
   unfollowUser,
   updateBio,
@@ -14,18 +13,27 @@ import {
 
 import Tweet from "../components/Tweet";
 import "../styles/Profile.css";
+import { useAuth } from "../context/AuthContext";
 
 function Profile() {
+  const { user: currentUser } = useAuth();
   const { username } = useParams();
 
   const [user, setUser] = useState(null);
   const [tweets, setTweets] = useState([]);
   const [retweets, setRetweets] = useState([]);
+  const [tweetsPage, setTweetsPage] = useState(1);
+  const [retweetsPage, setRetweetsPage] = useState(1);
+  const [tweetsPagination, setTweetsPagination] = useState({ page: 1, size: 10, totalItems: 0, totalPages: 0 });
+  const [retweetsPagination, setRetweetsPagination] = useState({ page: 1, size: 10, totalItems: 0, totalPages: 0 });
+  const [profileUsername, setProfileUsername] = useState(null);
 
   const [activeTab, setActiveTab] = useState("posts");
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [itemsLoading, setItemsLoading] = useState(true);
+  const [itemsError, setItemsError] = useState("");
 
   const [isFollowing, setIsFollowing] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
@@ -58,36 +66,22 @@ function Profile() {
       setBioSuccess("");
       setIsEditingBio(false);
       setActiveTab("posts");
+      setUser(null);
+      setProfileUsername(null);
+      setTweetsPage(1);
+      setRetweetsPage(1);
+      setTweets([]);
+      setRetweets([]);
+      setTweetsPagination({ page: 1, size: 10, totalItems: 0, totalPages: 0 });
+      setRetweetsPagination({ page: 1, size: 10, totalItems: 0, totalPages: 0 });
 
       try {
-        const [profileData, tweetsData, retweetsData] =
-          await Promise.all([
-            getUserProfile(username),
-            getUserTweets(username, 1, 10),
-            getUserRetweets(username, 1, 10),
-          ]);
-
-        let followingStatus = false;
-
-        const storedUser = localStorage.getItem("user");
-        const currentUser = storedUser
-          ? JSON.parse(storedUser)
-          : null;
-
-        if (currentUser?.username !== profileData.username) {
-          const statusData = await getFollowStatus(
-            username,
-            "Error checking follow status"
-          );
-
-          followingStatus = statusData.isFollowing;
-        }
+        const profileData = await getUserProfile(username);
 
         if (!cancelled) {
           setUser(profileData);
-          setTweets(tweetsData.items || []);
-          setRetweets(retweetsData.items || []);
-          setIsFollowing(followingStatus);
+          setProfileUsername(username);
+          setIsFollowing(Boolean(profileData.isFollowing));
           setBioDraft(profileData.bio || "");
         }
       } catch (error) {
@@ -109,7 +103,61 @@ function Profile() {
     return () => {
       cancelled = true;
     };
-  }, [username]);
+  }, [username, currentUser?.username]);
+
+  useEffect(() => {
+    if (profileUsername !== username) return undefined;
+
+    let cancelled = false;
+    const page = activeTab === "posts" ? tweetsPage : retweetsPage;
+
+    async function loadPage() {
+      setItemsLoading(true);
+      setItemsError("");
+
+      try {
+        const data = activeTab === "posts"
+          ? await getUserTweets(username, page, 10)
+          : await getUserRetweets(username, page, 10);
+
+        if (cancelled) return;
+
+        const pagination = {
+          page: data.page ?? page,
+          size: data.size ?? 10,
+          totalItems: data.totalItems ?? 0,
+          totalPages: data.totalPages ?? 0,
+        };
+
+        if (activeTab === "posts") {
+          setTweets(data.items || []);
+          setTweetsPagination(pagination);
+          if (page > Math.max(1, data.totalPages)) {
+            setTweetsPage(Math.max(1, data.totalPages));
+          }
+        } else {
+          setRetweets(data.items || []);
+          setRetweetsPagination(pagination);
+          if (page > Math.max(1, data.totalPages)) {
+            setRetweetsPage(Math.max(1, data.totalPages));
+          }
+        }
+      } catch (pageError) {
+        if (!cancelled) {
+          setItemsError(pageError.message || "No se pudieron cargar las publicaciones.");
+          if (activeTab === "posts") setTweets([]);
+          else setRetweets([]);
+        }
+      } finally {
+        if (!cancelled) setItemsLoading(false);
+      }
+    }
+
+    loadPage();
+    return () => {
+      cancelled = true;
+    };
+  }, [username, profileUsername, activeTab, tweetsPage, retweetsPage]);
 
   async function handleFollowToggle() {
     if (!user || followingLoading) return;
@@ -211,15 +259,17 @@ function Profile() {
     );
   }
 
-  const storedUser = localStorage.getItem("user");
-  const currentUser = storedUser
-    ? JSON.parse(storedUser)
-    : null;
-
   const isOwnProfile = currentUser?.username === user.username;
 
-  const displayedItems =
-    activeTab === "posts" ? tweets : retweets;
+  const activePage = activeTab === "posts" ? tweetsPage : retweetsPage;
+  const activePagination = activeTab === "posts" ? tweetsPagination : retweetsPagination;
+  const pageItems = activeTab === "posts" ? tweets : retweets;
+  const displayedItems = activePagination.page === activePage ? pageItems : [];
+  const displayTotalPages = Math.max(1, activePagination.totalPages || 0);
+  const displayedCount = Number(
+    (activeTab === "posts" ? user.tweetsCount : user.retweetsCount) ??
+      displayedItems.length
+  );
 
   return (
     <main className="profile-page">
@@ -231,12 +281,12 @@ function Profile() {
         <div className="profile-header-title">
           <h1>{user.fullName}</h1>
           <p>
-            {displayedItems.length}{" "}
+            {displayedCount}{" "}
             {activeTab === "posts"
-              ? displayedItems.length === 1
+              ? displayedCount === 1
                 ? "publicación"
                 : "publicaciones"
-              : displayedItems.length === 1
+              : displayedCount === 1
                 ? "republicación"
                 : "republicaciones"}
           </p>
@@ -390,7 +440,11 @@ function Profile() {
       </nav>
 
       <section className="profile-tweets">
-        {displayedItems.length > 0 ? (
+        {itemsLoading ? (
+          <p className="profile-message">Cargando publicaciones...</p>
+        ) : itemsError ? (
+          <p className="profile-error" role="alert">{itemsError}</p>
+        ) : displayedItems.length > 0 ? (
           displayedItems.map((tweet) => (
             <Tweet
               key={tweet.id}
@@ -412,6 +466,27 @@ function Profile() {
               : "Este usuario todavía no tiene republicaciones."}
           </p>
         )}
+        <nav className="pagination" aria-label="Paginación de publicaciones">
+          <button
+            type="button"
+            onClick={() => activeTab === "posts"
+              ? setTweetsPage((page) => Math.max(1, page - 1))
+              : setRetweetsPage((page) => Math.max(1, page - 1))}
+            disabled={itemsLoading || activePage <= 1}
+          >
+            Anterior
+          </button>
+          <span>Página {activePage} de {displayTotalPages}</span>
+          <button
+            type="button"
+            onClick={() => activeTab === "posts"
+              ? setTweetsPage((page) => Math.min(displayTotalPages, page + 1))
+              : setRetweetsPage((page) => Math.min(displayTotalPages, page + 1))}
+            disabled={itemsLoading || activePage >= displayTotalPages}
+          >
+            Siguiente
+          </button>
+        </nav>
       </section>
     </main>
   );

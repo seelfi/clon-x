@@ -3,10 +3,12 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { login } from '../services/api'
 import '../styles/Auth.css'
+import { useAuth } from '../context/AuthContext'
 
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { signIn } = useAuth()
 
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -32,8 +34,7 @@ function Login() {
     try {
       const data = await login(username, password)
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      signIn(data.token, data.user)
 
       navigate('/', { replace: true })
     } catch (error) {

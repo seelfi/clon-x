@@ -285,7 +285,7 @@ function Tweet({ post }) {
                   </p>
                 )}
 
-                {!commentsLoading && comments.length === 0 && (
+                {!commentsLoading && !error && comments.length === 0 && (
                   <p className="post__empty-comments">
                     Todavía no hay respuestas. ¡Sé el primero!
                   </p>

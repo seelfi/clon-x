@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { followUser, searchUsers } from '../services/api'
 import '../styles/RightPanel.css'
+import { useAuth } from '../context/AuthContext'
 
 function RightPanel() {
   const navigate = useNavigate()
@@ -17,13 +18,7 @@ function RightPanel() {
   const [searchError, setSearchError] = useState('')
   const [showSuggestions, setShowSuggestions] = useState(false)
 
-  const currentUser = (() => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || '{}')
-    } catch {
-      return {}
-    }
-  })()
+  const currentUser = useAuth().user || {}
 
   function clearSearchState() {
     setSuggestions([])
@@ -57,12 +52,6 @@ function RightPanel() {
       setSearchError('')
 
       try {
-        const token = localStorage.getItem('token')
-
-        if (!token) {
-          throw new Error('Inicia sesión para buscar usuarios.')
-        }
-
         const data = await searchUsers(query)
 
         if (!cancelled) {
