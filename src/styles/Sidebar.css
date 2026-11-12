@@ -1,0 +1,117 @@
+
+/* User search */
+.sidebar__search {
+  position: relative;
+  width: 100%;
+  padding: 0 12px;
+  margin: 12px 0 18px;
+  box-sizing: border-box;
+  z-index: 20;
+}
+
+.sidebar__search-label {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12px;
+  color: #8b98a5;
+}
+
+.sidebar__search-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 11px 13px;
+  border: 1px solid #34475a;
+  border-radius: 12px;
+  outline: none;
+  background: #192734;
+  color: #e7e9ea;
+  font: inherit;
+  font-size: 14px;
+}
+
+.sidebar__search-input::placeholder {
+  color: #8b98a5;
+}
+
+.sidebar__search-input:focus {
+  border-color: #1d9bf0;
+  box-shadow: 0 0 0 1px #1d9bf0;
+}
+
+.sidebar__search-results {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 12px;
+  right: 12px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #15202b;
+  border: 1px solid #38444d;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 30%);
+  z-index: 100;
+}
+
+.sidebar__search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  background: transparent;
+  color: #e7e9ea;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar__search-result:hover,
+.sidebar__search-result:focus-visible {
+  background: #22303c;
+  outline: none;
+}
+
+.sidebar__search-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #1d9bf0;
+  color: white;
+  font-weight: 700;
+}
+
+.sidebar__search-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.sidebar__search-user-info strong,
+.sidebar__search-user-info span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__search-user-info strong {
+  font-size: 14px;
+}
+
+.sidebar__search-user-info span {
+  font-size: 12px;
+  color: #8b98a5;
+}
+
+.sidebar__search-message {
+  margin: 0;
+  padding: 14px;
+  color: #8b98a5;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
